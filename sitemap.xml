@@ -1,10 +1,15 @@
 <urlset xmlns = 'http://www.sitemaps.org/schemas/sitemap/0.9'>
 <url><loc>https://pedrobtz.github.io/zugojson/404.html</loc></url>
+<url><loc>https://pedrobtz.github.io/zugojson/CLAUDE.html</loc></url>
 <url><loc>https://pedrobtz.github.io/zugojson/LICENSE-text.html</loc></url>
 <url><loc>https://pedrobtz.github.io/zugojson/LICENSE.html</loc></url>
 <url><loc>https://pedrobtz.github.io/zugojson/authors.html</loc></url>
 <url><loc>https://pedrobtz.github.io/zugojson/index.html</loc></url>
 <url><loc>https://pedrobtz.github.io/zugojson/news/index.html</loc></url>
 <url><loc>https://pedrobtz.github.io/zugojson/reference/index.html</loc></url>
+<url><loc>https://pedrobtz.github.io/zugojson/reference/json_format.html</loc></url>
+<url><loc>https://pedrobtz.github.io/zugojson/reference/json_minify.html</loc></url>
+<url><loc>https://pedrobtz.github.io/zugojson/reference/json_valid.html</loc></url>
+<url><loc>https://pedrobtz.github.io/zugojson/reference/zugojson-package.html</loc></url>
 </urlset>
 

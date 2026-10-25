@@ -1,6 +1,6 @@
 # MIT License
 
-Copyright (c) 2026 zugojson authors
+Copyright (c) 2026 Pedro Baltazar
 
 Permission is hereby granted, free of charge, to any person obtaining a
 copy of this software and associated documentation files (the
@@ -20,3 +20,7 @@ IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
 CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
 TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
 SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+This licence covers the files listed as first-party in inst/COPYRIGHTS.
+The files derived from Goose are under the Apache License 2.0, as stated
+there.
