@@ -1,0 +1,8 @@
+# Written by tools/regenerate.sh. Do not edit.
+goose_repository https://github.com/aardappel/goose
+goose_commit e76d5c9f7f0a17d83c12a405fbb2513094d03985
+runtime_version a5dbd11b6309
+sha256 2eb356ac914ef4b861bb0ce9cd2254878779b286f869ef766269c13f8a4c9d75  zugojson_goose.c
+sha256 3c8e78be9d434d9a160f2b4d8247ad0a3001484ab0be8d12821e6c54e985634e  zugojson_goose.h
+sha256 71258fd15b3f4174695993b46449d8fb776e1e0659da1c8d343fe1b4c87a9031  goose_version.h
+sha256 059284fda3e81d3b0429dc60eac3f9e2f06d75bcf9ed892fc89f510c3acebe33  goose_vendor.c

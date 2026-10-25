@@ -1,14 +1,37 @@
 Package: zugojson
-Title: What the Package Does (One Line, Title Case)
+Title: JSON Formatting with a Parser Written in 'Goose'
 Version: 0.0.0.9000
-Authors@R: 
-    person("First", "Last", , "first.last@example.com", role = c("aut", "cre"))
-Description: What the package does (one paragraph).
+Authors@R: c(
+    person("Pedro", "Baltazar", , "pedrobtz@gmail.com",
+           role = c("aut", "cre", "cph")),
+    person("Wouter", "van Oortmerssen", role = c("ctb", "cph"),
+           comment = paste("author of the 'Goose' language and compiler;",
+                           "the JSON sample the parser derives from, the",
+                           "runtime code the generated C inlines and the",
+                           "runtime pieces in src/goose_vendor.c")))
+Description: Formats, minifies and validates 'JSON' text with a parser and
+    printer written in the 'Goose' programming language
+    (<https://github.com/aardappel/goose>) and compiled ahead of time to C,
+    which the package bundles. 'Goose' is a memory-safe systems language
+    with no heap: the parsed document lives in one contiguous block linked
+    by 4-byte relative offsets. The package replaces the 'Goose' runtime
+    with a small one that reports every runtime failure as an R error
+    instead of ending the process. No 'Goose' compiler is needed to install
+    the package.
 License: MIT + file LICENSE
+Copyright: See inst/COPYRIGHTS.
+URL: https://github.com/pedrobtz/zugojson,
+    https://pedrobtz.github.io/zugojson/
+BugReports: https://github.com/pedrobtz/zugojson/issues
+Depends:
+    R (>= 4.1)
+Suggests:
+    jsonlite,
+    testthat (>= 3.0.0)
+SystemRequirements: A C99 compiler. POSIX memory mapping and signals
+    (mmap, mprotect, sigaction); Windows is not supported yet.
+OS_type: unix
+Config/testthat/edition: 3
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
-RoxygenNote: 8.1.0
-Suggests: 
-    testthat (>= 3.0.0)
-Config/testthat/edition: 3
-URL: https://pedrobtz.github.io/zugojson/
+Config/roxygen2/version: 8.1.1

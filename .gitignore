@@ -52,3 +52,7 @@ CRAN-SUBMISSION
 
 # Claude Code local settings
 .claude/settings.local.json
+
+# Written by testthat when a run fails; a record of one local run, not source.
+tests/testthat/_problems/
+tests/testthat/testthat-problems.rds

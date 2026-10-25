@@ -1,4 +1,3 @@
-
 # zugojson
 
 <!-- badges: start -->
@@ -6,23 +5,88 @@
 [![coverage](https://raw.githubusercontent.com/pedrobtz/zugojson/main/.github/badges/coverage.svg)](https://github.com/pedrobtz/zugojson/actions/workflows/coverage.yaml)
 <!-- badges: end -->
 
-The goal of zugojson is to ...
+zugojson formats, minifies and validates JSON text. Its parser and printer
+are written in [Goose](https://github.com/aardappel/goose), a memory-safe
+systems language with no heap, and compiled ahead of time to C. The package
+ships that C, so installing it needs no Goose compiler.
+
+The package is a demonstration that Goose can be used to write R packages.
+It is not a replacement for jsonlite.
 
 ## Installation
 
-You can install the development version of zugojson from [GitHub](https://github.com/) with:
-
-``` r
+```r
 # install.packages("pak")
 pak::pak("pedrobtz/zugojson")
 ```
 
-## Example
+zugojson builds on Linux and macOS. Windows is not supported yet.
 
-This is a basic example which shows you how to solve a common problem:
+## Usage
 
-``` r
+```r
 library(zugojson)
-## basic example code
+
+cat(json_format('{"a": [1, 2.50, {"b": null}], "s": "x"}'))
+#> {
+#>   "a": [
+#>     1,
+#>     2.5,
+#>     {
+#>       "b": null
+#>     }
+#>   ],
+#>   "s": "x"
+#> }
+
+json_minify('{ "a" : [ 1, 2 ] }')
+#> [1] "{\"a\":[1,2]}"
+
+json_valid(c("[1, 2]", "[1, 2", NA))
+#> [1]  TRUE FALSE    NA
 ```
 
+A syntax error is a condition of class `zugojson_parse_error`. Its `byte`
+field holds the offset where parsing stopped.
+
+```r
+tryCatch(json_format("[1, 2"), zugojson_parse_error = function(e) e$byte)
+#> [1] 5
+```
+
+## How it works
+
+The JSON code is in `tools/goose/zugojson.goose`. `tools/regenerate.sh`
+compiles it with a pinned Goose compiler into `src/zugojson_goose.c`, a C
+file with no `main`.
+
+The parsed document lives in one contiguous block. Each node links to its
+next sibling with a 4-byte offset relative to itself, so the tree holds no
+pointers.
+
+Generated Goose code needs a runtime. The stock runtime ends the process on
+any error, writes to stdout and stderr, and installs process-wide signal
+handlers. That is unacceptable inside R, so zugojson replaces it with
+`src/goose_r_runtime.c`:
+
+- A Goose runtime error, such as a failed bounds check, becomes an R error
+  of class `zugojson_runtime_error`, and later calls keep working.
+- Goose's guard-page fault handler is installed only while Goose code runs.
+  R's own handlers are restored afterwards.
+- Nothing writes to stdout or stderr, and nothing can end the R process.
+
+## Performance
+
+On a 14.7 MB document, zugojson took about twice as long as jsonlite 2.0.0
+for each task. That is the median of seven runs, with R 4.6.1 on Linux.
+
+| Task | zugojson | jsonlite |
+| --- | --- | --- |
+| Minify | 0.43 s | 0.18 s |
+| Pretty-print | 0.48 s | 0.29 s |
+| Validate | 0.20 s | 0.11 s |
+
+## Licence
+
+zugojson is MIT licensed. The Goose-derived files are under Apache-2.0, as
+listed in `inst/COPYRIGHTS`.

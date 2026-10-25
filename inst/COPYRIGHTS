@@ -1,0 +1,42 @@
+zugojson: copyright and licensing of all included files
+=======================================================
+
+zugojson itself
+---------------
+
+Copyright (c) 2026 Pedro Baltazar, MIT licence (see LICENSE):
+
+    R/                        the R interface
+    src/zugojson_r.c          the R entry points
+    src/zugojson_number.c     number conversion the Goose parser calls
+    src/goose_r_runtime.c     the replacement Goose runtime for R
+    src/goose_r_runtime.h
+    tools/regenerate.sh       regeneration of the generated files below
+    tests/                    the test suite
+
+
+Third-party code: Goose
+-----------------------
+
+    Upstream:  https://github.com/aardappel/goose
+    Commit:    see tools/goose/PIN and tools/goose/PROVENANCE
+    Licence:   Apache-2.0
+    Copyright: Wouter van Oortmerssen
+
+The full licence is inst/licenses/goose-LICENSE, installed as
+licenses/goose-LICENSE (Apache-2.0 section 4(a)). These files are under it:
+
+    tools/goose/zugojson.goose  derived from samples/18_json.goose; the
+                                changes are listed in its header comment
+    src/zugojson_goose.c        compiled from tools/goose/zugojson.goose by
+                                the Goose compiler, and so contains the parts
+                                of the Goose runtime that inline into every
+                                program; one local patch, applied by
+                                tools/regenerate.sh, wraps the 128-bit integer
+                                type in __extension__
+    src/zugojson_goose.h        written by the same compilation
+    src/goose_version.h         the compiler's runtime interface hash
+    src/goose_vendor.c          byte search and number formatting, copied
+                                verbatim from src/runtime/runtime_impl.h
+
+Apache-2.0 and MIT are compatible: each file keeps its own terms.

@@ -1,6 +1,3 @@
 #' @keywords internal
+#' @useDynLib zugojson, .registration = TRUE
 "_PACKAGE"
-
-## usethis namespace: start
-## usethis namespace: end
-NULL
