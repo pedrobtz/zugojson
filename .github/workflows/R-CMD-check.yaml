@@ -22,3 +22,10 @@ jobs:
       # Quick on each push to a pull request, full after merge. The
       # `full-ci` label runs the full set on a pull request before merging.
       profile: ${{ github.event_name == 'pull_request' && !contains(github.event.pull_request.labels.*.name, 'full-ci') && 'quick' || 'full' }}
+      # The default matrix without Windows: the replacement Goose runtime
+      # is POSIX only (mmap, mprotect, sigaction), and DESCRIPTION says
+      # OS_type: unix. The quick profile's one Ubuntu leg is unchanged.
+      runners: >-
+        [{"os": "macos-latest", "r": "release"},
+         {"os": "ubuntu-latest", "r": "release"},
+         {"os": "ubuntu-latest", "r": "oldrel-1"}]

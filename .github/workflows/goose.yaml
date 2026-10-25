@@ -1,0 +1,45 @@
+# Two checks the shared R CMD check does not make:
+#
+# - regenerate: builds the Goose compiler at tools/goose/PIN and verifies
+#   that the committed generated C is exactly what tools/goose and the pin
+#   produce, so nobody edits src/zugojson_goose.c by hand.
+# - symbols: builds the package and fails on any symbol that can end the
+#   R process or write to stdout or stderr.
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+
+name: goose.yaml
+
+permissions: read-all
+
+jobs:
+  regenerate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check out Goose at the pin
+        run: |
+          git clone https://github.com/aardappel/goose.git "$RUNNER_TEMP/goose"
+          git -C "$RUNNER_TEMP/goose" checkout "$(cat tools/goose/PIN)"
+      - name: Build the Goose compiler
+        run: |
+          cmake -S "$RUNNER_TEMP/goose" -B "$RUNNER_TEMP/goose/build" -DCMAKE_BUILD_TYPE=Release
+          cmake --build "$RUNNER_TEMP/goose/build" -j4
+      - name: Verify the generated files
+        run: tools/regenerate.sh --verify "$RUNNER_TEMP/goose"
+
+  symbols:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: r-lib/actions/setup-r@v2
+      - name: Build the shared object
+        run: R CMD INSTALL --no-test-load -l "$RUNNER_TEMP" .
+      - name: Check for forbidden symbols
+        run: tools/check-symbols.sh "$RUNNER_TEMP/zugojson/libs/zugojson.so"
