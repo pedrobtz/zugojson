@@ -10,6 +10,22 @@ typedef struct { double e[23]; } a23_f64;
 
 typedef struct { uint8_t *data; int64_t len; } sl_u8;
 
+typedef struct { uint64_t e[20]; } a20_u64;
+
+typedef struct { uint64_t e[28]; } a28_u64;
+
+typedef struct { uint64_t e[1392]; } a1392_u64;
+
+typedef struct { uint8_t e[20]; } a20_u8;
+
+typedef struct json_Number_g4 json_Number_g4;
+struct json_Number_g4 {
+    double value_g;
+    int64_t int_g;
+    uint8_t is_int_g;
+    int64_t end_g;
+};
+
 enum {
     Json_g_Null_g_k = 0,
     Json_g_Bool_g_k = 1,
@@ -18,6 +34,16 @@ enum {
     Json_g_Arr_g_k = 4,
     Json_g_Obj_g_k = 5,
 };
+
+typedef struct { double e[1]; } a1_f64;
+
+typedef struct { uint8_t len; uint8_t e[32]; } l32_u8;
+
+typedef struct { uint8_t e[17]; } a17_u8;
+
+typedef struct { uint8_t len; uint8_t e[40]; } l40_u8;
+
+typedef struct { uint32_t *data; int64_t len; } sl_u32;
 
 typedef struct Json_g_Bool_p Json_g_Bool_p;
 struct Json_g_Bool_p {

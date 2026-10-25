@@ -25,7 +25,7 @@ Verified 2026-10-25 on Linux, R 4.6.1:
 - macOS should work, because it uses the same POSIX code, but it has not
   been run. Windows is not written: `goose_r_runtime.c` stops the build with
   an `#error`, and `DESCRIPTION` says `OS_type: unix`.
-- About twice as slow as jsonlite; the README has the numbers.
+- About as fast as jsonlite; the README has the numbers.
 - Not built: parsing to R lists, path queries, and the Windows runtime.
 
 ## Commands

@@ -7,8 +7,8 @@
 // Wouter van Oortmerssen). Changes from the sample: no main; a nesting
 // limit; JSON's number grammar, with C's strtod for the conversion; the
 // \b and \f escapes; control bytes escaped on output; a range check
-// before a number is printed as an integer; and the exported API at the
-// end.
+// before a number is printed as an integer; other numbers printed through
+// std's json digits, not the builtin's; and the exported API at the end.
 //
 // The document becomes a tree of variable-mode enum values in one
 // grow-only pool: a number is a tag and an f64, a string is a tag and its
@@ -20,6 +20,7 @@
 // parse` carrying the message and position back to the top.
 
 import std;
+import json;
 
 // A node is a sibling link, a key (empty for array elements) and the
 // value; the value's payload is exactly as large as its variant needs.
@@ -230,6 +231,48 @@ fn quote(out: u8[>..]&, s: u8[:]) {
 
 fn hex_char(d: u8) -> u8 { if d < 10 { '0' + d } else { 'a' + d - 10 } }
 
+// A finite, nonzero float as format(out, v) writes it, but several times
+// faster. The builtin finds the shortest digits that read back with big
+// integers; std's json finds the same digits with ryu's 64-bit loop, or a
+// 15-digit shortcut outside ryu's range. The layout is the builtin's, C's
+// %g at a precision of max(15, digits): 1e+300, 1e-05, 0.0001.
+fn format_f64(out: u8[>..]&, v: f64) {
+    var dig: u8[20] = [0; 20];
+    let n0, k = shortest_digits(v, dig);   // v is 0.d1 d2 ... * 10^k
+    var n = n0;
+    while n > 1 && dig[n - 1] == '0' { n--; }
+    if v < 0.0 { out.push('-'); }
+    let x = k - 1;                          // the decimal exponent
+    if x < -4 || x >= max(n, 15) {
+        out.push(dig[0]);
+        if n > 1 { out.push('.'); out.append(dig[1..n]); }
+        out.push('e');
+        out.push(if x < 0 { '-' } else { '+' });
+        let a = abs(x);
+        if a < 10 { out.push('0'); }        // at least two exponent digits
+        format(out, a);
+    } else if x < 0 {
+        out.append("0.");
+        for i in -x - 1 { out.push('0'); }
+        out.append(dig[..n]);
+    } else if n <= x + 1 {
+        // A whole number still reads as a float: 1e15 is 1000000000000000.0.
+        out.append(dig[..n]);
+        for i in x + 1 - n { out.push('0'); }
+        out.append(".0");
+    } else {
+        out.append(dig[..x + 1]);
+        out.push('.');
+        out.append(dig[x + 1..n]);
+    }
+}
+
+fn shortest_digits(v: f64, dig: u8[20]&) -> i64, i64 {
+    let n, k = json::ryu_digits(v, dig[..]);
+    if n > 0 { return n, k; }
+    return json::general_digits(abs(v), dig[..17]);
+}
+
 fn newline(out: u8[>..]&, indent: i64) {
     out.push('\n');
     for i in indent * 2 { out.push(' '); }
@@ -246,7 +289,7 @@ recursive fn render(n: Node&, out: u8[>..]&, indent: i64) {
             // cannot overflow.
             if x.v > -9007199254740992.0 && x.v < 9007199254740992.0 && (x.v as! i64) == x.v {
                 format(out, x.v as! i64);
-            } else { format(out, x.v); }
+            } else { format_f64(out, x.v); }
         },
         Str &s => quote(out, s.s),
         Arr &a => render_children(a.first, false, out, indent, '[', ']'),
