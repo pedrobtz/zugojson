@@ -75,15 +75,25 @@ with `src/goose_r_runtime.c`:
 
 ## Performance
 
-On a 14.7 MB document, zugojson took about twice as long as jsonlite
-2.0.0 for each task. That is the median of seven runs, with R 4.6.1 on
-Linux.
+zugojson is about as fast as jsonlite 2.0.0. The table gives seconds for
+four documents of 1 to 4 MB, built with jsonlite’s `toJSON()`: an array
+of integers, one of random doubles, one of short strings and a table of
+records. Each time is the best of five runs, with R 4.5.2 on macOS.
 
-| Task         | zugojson | jsonlite |
-|--------------|----------|----------|
-| Minify       | 0.43 s   | 0.18 s   |
-| Pretty-print | 0.48 s   | 0.29 s   |
-| Validate     | 0.20 s   | 0.11 s   |
+| Document | Task         | zugojson | jsonlite |
+|----------|--------------|----------|----------|
+| Integers | Minify       | 0.017 s  | 0.014 s  |
+|          | Pretty-print | 0.019 s  | 0.020 s  |
+|          | Validate     | 0.013 s  | 0.009 s  |
+| Doubles  | Minify       | 0.033 s  | 0.028 s  |
+|          | Pretty-print | 0.035 s  | 0.034 s  |
+|          | Validate     | 0.019 s  | 0.018 s  |
+| Strings  | Minify       | 0.007 s  | 0.008 s  |
+|          | Pretty-print | 0.007 s  | 0.010 s  |
+|          | Validate     | 0.003 s  | 0.004 s  |
+| Records  | Minify       | 0.020 s  | 0.032 s  |
+|          | Pretty-print | 0.023 s  | 0.044 s  |
+|          | Validate     | 0.012 s  | 0.016 s  |
 
 ## Licence
 

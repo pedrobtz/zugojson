@@ -50,7 +50,7 @@
 <code>R CMD check --as-cran</code> is clean apart from the new-submission NOTE.</li>
 <li>The test suite passes, including jsonlite as an oracle.</li>
 <li>macOS should work, because it uses the same POSIX code, but it has not been run. Windows is not written: <code>goose_r_runtime.c</code> stops the build with an <code>#error</code>, and <code>DESCRIPTION</code> says <code>OS_type: unix</code>.</li>
-<li>About twice as slow as jsonlite; the README has the numbers.</li>
+<li>About as fast as jsonlite; the README has the numbers.</li>
 <li>Not built: parsing to R lists, path queries, and the Windows runtime.</li>
 </ul></div>
 <div class="section level2">

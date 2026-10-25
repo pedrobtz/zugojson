@@ -104,28 +104,86 @@
 <div class="section level2">
 <h2 id="performance">Performance<a class="anchor" aria-label="anchor" href="#performance"></a>
 </h2>
-<p>On a 14.7 MB document, zugojson took about twice as long as jsonlite 2.0.0 for each task. That is the median of seven runs, with R 4.6.1 on Linux.</p>
+<p>zugojson is about as fast as jsonlite 2.0.0. The table gives seconds for four documents of 1 to 4 MB, built with jsonlite’s <code>toJSON()</code>: an array of integers, one of random doubles, one of short strings and a table of records. Each time is the best of five runs, with R 4.5.2 on macOS.</p>
 <table class="table">
 <thead><tr>
+<th>Document</th>
 <th>Task</th>
 <th>zugojson</th>
 <th>jsonlite</th>
 </tr></thead>
 <tbody>
 <tr>
+<td>Integers</td>
 <td>Minify</td>
-<td>0.43 s</td>
-<td>0.18 s</td>
+<td>0.017 s</td>
+<td>0.014 s</td>
 </tr>
 <tr>
+<td></td>
 <td>Pretty-print</td>
-<td>0.48 s</td>
-<td>0.29 s</td>
+<td>0.019 s</td>
+<td>0.020 s</td>
 </tr>
 <tr>
+<td></td>
 <td>Validate</td>
-<td>0.20 s</td>
-<td>0.11 s</td>
+<td>0.013 s</td>
+<td>0.009 s</td>
+</tr>
+<tr>
+<td>Doubles</td>
+<td>Minify</td>
+<td>0.033 s</td>
+<td>0.028 s</td>
+</tr>
+<tr>
+<td></td>
+<td>Pretty-print</td>
+<td>0.035 s</td>
+<td>0.034 s</td>
+</tr>
+<tr>
+<td></td>
+<td>Validate</td>
+<td>0.019 s</td>
+<td>0.018 s</td>
+</tr>
+<tr>
+<td>Strings</td>
+<td>Minify</td>
+<td>0.007 s</td>
+<td>0.008 s</td>
+</tr>
+<tr>
+<td></td>
+<td>Pretty-print</td>
+<td>0.007 s</td>
+<td>0.010 s</td>
+</tr>
+<tr>
+<td></td>
+<td>Validate</td>
+<td>0.003 s</td>
+<td>0.004 s</td>
+</tr>
+<tr>
+<td>Records</td>
+<td>Minify</td>
+<td>0.020 s</td>
+<td>0.032 s</td>
+</tr>
+<tr>
+<td></td>
+<td>Pretty-print</td>
+<td>0.023 s</td>
+<td>0.044 s</td>
+</tr>
+<tr>
+<td></td>
+<td>Validate</td>
+<td>0.012 s</td>
+<td>0.016 s</td>
 </tr>
 </tbody>
 </table>
