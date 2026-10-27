@@ -83,7 +83,7 @@ R/json.R                     the R API and the condition constructors</code></pr
 <div class="section level2">
 <h2 id="invariants-that-are-easy-to-break">Invariants that are easy to break<a class="anchor" aria-label="anchor" href="#invariants-that-are-easy-to-break"></a></h2>
 <ul><li>
-<strong>No R API inside <code>goose_r_run()</code>.</strong> A body function or anything Goose calls, such as <code>zugojson_strtod</code>, must not allocate R objects or raise R errors. An R longjmp would skip the stack rewind and leave Goose’s SIGSEGV handler in place of R’s.</li>
+<strong>Bodies may call R, but never <code>PROTECT</code> inside <code>goose_r_run()</code>.</strong> <code>goose_r_run()</code> runs the body under <code>R_UnwindProtect</code>, so an R error or interrupt rewinds the stacks and restores R’s handlers before R unwinds further. A body holds R objects only in a holder protected outside <code>goose_r_run()</code>. A Goose failure jumps over any <code>UNPROTECT</code> inside it. A call into Goose while another runs is refused with a runtime error, because the calls share Goose’s globals.</li>
 <li>
 <strong>Every export clears its globals first.</strong> After a failure the data stack tops are rewound but Goose globals are not. An export that relies on what a previous call left in <code>pool</code> or <code>out</code> reads half-built state.</li>
 <li>
