@@ -125,18 +125,31 @@ them by default. Each one has a test in the task that owns the code.
   `.agents/research/bench-<label>.csv` with the columns `case`, `task` and
   `seconds`. Later tasks compare against `bench-baseline.csv`.
 
-- [ ] **Step 1:** Write `tools/bench.R`. It builds the four README
+- [x] **Step 1:** Write `tools/bench.R`. It builds the four README
   documents with `jsonlite::toJSON()`: integers, doubles, short strings
   and records, each 1–4 MB, with `set.seed(1)`. It times `json_minify`,
   `json_format` and `json_valid` on each one, as the best of five
   `system.time()` elapsed values. It adds one case, `per_call`:
   `json_valid(rep("[1]", 1e5))`. This case measures the set-up cost per
   call (stack save and handler swap).
-- [ ] **Step 2:** Run `R CMD INSTALL . && Rscript tools/bench.R baseline`.
+- [x] **Step 2:** Run `R CMD INSTALL . && Rscript tools/bench.R baseline`.
   Expected: a 13-row CSV. The minify and format rows are within 20% of the
   README table.
-- [ ] **Step 3:** Commit: `Add a benchmark script and baseline for the
+- [x] **Step 3:** Commit: `Add a benchmark script and baseline for the
   runtime research`.
+
+**Deviations (2026-10-27).**
+- Each time is the best of ten timings of 20 calls, divided by 20. The
+  documents take 6–21 ms per call. One call is too close to
+  `system.time()`'s 1 ms resolution. `per_call` is timed once per timing.
+- Only the integers rows are within 20% of the README. The README's
+  documents were never scripted, so `tools/bench.R` cannot rebuild them.
+  The README also predates 944c978, which made doubles faster. From now
+  on, `bench-baseline.csv` is the reference, not the README.
+- Separate runs on the same build differ by up to 7.5% per row, on macOS
+  (x86_64, R 4.5.2). Repeating calls inside one run does not narrow
+  that. The 3% gates in Tasks 4 and 5 are below this noise. Before them,
+  compare the median of three runs, or widen the gates.
 
 ### Task 2: Piece 0: let bodies call R (`R_UnwindProtect`)
 
