@@ -1,7 +1,7 @@
 # Compare an installed zugojson with zujson (yyjson) and jsonlite.
 #
 # Usage, from the package root:
-#   R CMD INSTALL . && Rscript tools/bench-compare.R
+#   R CMD INSTALL --preclean . && Rscript tools/bench-compare.R
 #
 # Writes .agents/research/compare.csv with the columns case, task, zugojson,
 # zujson and jsonlite, in seconds per call.

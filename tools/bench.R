@@ -1,7 +1,10 @@
 # Benchmark an installed zugojson for the runtime research.
 #
 # Usage, from the package root:
-#   R CMD INSTALL . && Rscript tools/bench.R <label>
+#   R CMD INSTALL --preclean . && Rscript tools/bench.R <label>
+#
+# --preclean matters: devtools::load_all() leaves -O0 objects in src/, and
+# a plain install reuses them.
 #
 # Writes .agents/research/bench-<label>.csv with the columns case, task and
 # seconds, in seconds per call.
