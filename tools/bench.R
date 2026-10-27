@@ -4,8 +4,7 @@
 #   R CMD INSTALL . && Rscript tools/bench.R <label>
 #
 # Writes .agents/research/bench-<label>.csv with the columns case, task and
-# seconds. Each time is the best of ten elapsed times, divided by the
-# number of repetitions in one timing, so it is seconds per call.
+# seconds, in seconds per call.
 
 args <- commandArgs(trailingOnly = TRUE)
 if (length(args) != 1L || !nzchar(args[[1]])) {
@@ -14,31 +13,9 @@ if (length(args) != 1L || !nzchar(args[[1]])) {
 label <- args[[1]]
 
 library(zugojson)
+source("tools/bench-common.R")
 
-best_of <- function(expr, reps = 20L, n = 10L) {
-  expr <- substitute(expr)
-  env <- parent.frame()
-  min(vapply(seq_len(n), function(i) {
-    system.time(for (r in seq_len(reps)) eval(expr, env))[["elapsed"]]
-  }, numeric(1))) / reps
-}
-
-set.seed(1)
-n <- 200000L
-docs <- list(
-  integers = jsonlite::toJSON(sample.int(1e6, n)),
-  doubles = jsonlite::toJSON(runif(n / 2) * 1000, digits = NA),
-  strings = jsonlite::toJSON(
-    vapply(seq_len(n), function(i) paste(sample(letters, 6), collapse = ""), "")
-  ),
-  records = jsonlite::toJSON(data.frame(
-    id = seq_len(n / 10),
-    name = sprintf("item%05d", seq_len(n / 10)),
-    price = round(runif(n / 10) * 100, 2),
-    ok = sample(c(TRUE, FALSE), n / 10, replace = TRUE)
-  ))
-)
-docs <- lapply(docs, as.character)
+docs <- bench_docs()
 
 rows <- list()
 for (case in names(docs)) {
@@ -60,12 +37,4 @@ rows[[length(rows) + 1L]] <- data.frame(
   case = "per_call", task = "valid", seconds = best_of(json_valid(short), reps = 1L)
 )
 
-res <- do.call(rbind, rows)
-dir.create(".agents/research", showWarnings = FALSE, recursive = TRUE)
-path <- file.path(".agents/research", paste0("bench-", label, ".csv"))
-utils::write.csv(res, path, row.names = FALSE)
-
-sizes <- vapply(docs, function(x) nchar(x, type = "bytes") / 2^20, numeric(1))
-message(paste(sprintf("%-8s %.1f MB", names(sizes), sizes), collapse = "\n"))
-print(res, row.names = FALSE)
-message("Wrote ", path)
+bench_write(do.call(rbind, rows), paste0("bench-", label), docs)
