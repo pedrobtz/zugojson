@@ -1,6 +1,22 @@
 #pragma once
 #include <stdint.h>
 typedef struct gs_stack gs_stack;
+#ifndef GS_UA_TYPES
+#define GS_UA_TYPES
+#if defined(__GNUC__) || defined(__clang__)
+#define GS_UNALIGNED __attribute__((aligned(1)))
+#else
+#define GS_UNALIGNED
+#endif
+typedef int16_t gs_ua_i16 GS_UNALIGNED;
+typedef int32_t gs_ua_i32 GS_UNALIGNED;
+typedef int64_t gs_ua_i64 GS_UNALIGNED;
+typedef uint16_t gs_ua_u16 GS_UNALIGNED;
+typedef uint32_t gs_ua_u32 GS_UNALIGNED;
+typedef uint64_t gs_ua_u64 GS_UNALIGNED;
+typedef float gs_ua_f32 GS_UNALIGNED;
+typedef double gs_ua_f64 GS_UNALIGNED;
+#endif
 #pragma pack(push, 1)
 typedef struct { uint8_t *base; int64_t len; } gs_rhdr;
 typedef struct { gs_rhdr *hdr; gs_stack *stk; } gs_rref;
@@ -26,6 +42,7 @@ struct json_Number_g4 {
     int64_t end_g;
 };
 
+typedef uint8_t *gs_ua_uint8_tp GS_UNALIGNED;
 enum {
     Json_g_Null_g_k = 0,
     Json_g_Bool_g_k = 1,
@@ -43,7 +60,7 @@ typedef struct { uint8_t e[17]; } a17_u8;
 
 typedef struct { uint8_t len; uint8_t e[40]; } l40_u8;
 
-typedef struct { uint32_t *data; int64_t len; } sl_u32;
+typedef struct { gs_ua_u32 *data; int64_t len; } sl_u32;
 
 typedef struct Json_g_Bool_p Json_g_Bool_p;
 struct Json_g_Bool_p {

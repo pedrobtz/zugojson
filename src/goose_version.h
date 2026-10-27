@@ -4,5 +4,5 @@
    version fails to link instead of misbehaving. */
 #ifndef GOOSE_VERSION_H
 #define GOOSE_VERSION_H
-#define GS_RUNTIME_VERSION a5dbd11b6309
+#define GS_RUNTIME_VERSION e9a5f91e57ed
 #endif
