@@ -269,15 +269,23 @@ test_that("R's recursion limit still works inside a Goose call", {
 - Produces: a research branch switches to the fork by changing `REMOTE`
   and `PIN` together. Nothing else changes.
 
-- [ ] **Step 1:** Ask the user before running `gh repo fork aardappel/goose
+- [x] **Step 1:** Ask the user before running `gh repo fork aardappel/goose
   --clone=false`. Create the branch `hosted-runtime` in the fork at
   `e76d5c9`.
-- [ ] **Step 2:** Make the changes listed above.
-- [ ] **Step 3:** Run `tools/regenerate.sh --verify <checkout at pin>`.
+- [x] **Step 2:** Make the changes listed above.
+- [x] **Step 3:** Run `tools/regenerate.sh --verify <checkout at pin>`.
   Expected: it passes. `PROVENANCE` is unchanged, because `REMOTE` is
   still upstream.
-- [ ] **Step 4:** Commit: `Read the Goose repository from tools/goose/REMOTE`.
+- [x] **Step 4:** Commit: `Read the Goose repository from tools/goose/REMOTE`.
   The pull request says it changes `tools/regenerate.sh`.
+
+**Deviations (2026-10-27).**
+- The user created the fork, `pedrobtz/goose`, and cloned it to
+  `~/src/github.com/pedrobtz/goose`, with `upstream` as a second remote.
+  `hosted-runtime` exists there at `e76d5c9`, but only locally. It is
+  pushed when Task 4 has commits on it.
+- `goose_repository` in `PROVENANCE` is `REMOTE` without its `.git`
+  suffix. That keeps today's line byte for byte.
 
 ### Task 4: Piece 1: hosted stock runtime
 
