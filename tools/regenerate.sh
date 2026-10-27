@@ -4,7 +4,8 @@
 #   tools/regenerate.sh /path/to/goose-checkout            # rewrite src/
 #   tools/regenerate.sh --verify /path/to/goose-checkout   # diff only
 #
-# The checkout must be at the commit in tools/goose/PIN and already built
+# The checkout must be at the commit in tools/goose/PIN, cloned from the
+# repository in tools/goose/REMOTE, and already built
 # (cmake -S . -B build && cmake --build build), so that build/goose exists.
 # Nothing here runs at install time: CRAN machines have no Goose compiler,
 # so the generated files are committed and shipped.
@@ -33,6 +34,7 @@ pkg=$(cd "$(dirname "$0")/.." && pwd)
 gsrc=$(cd "$1" && pwd)
 goose="$gsrc/build/goose"
 pin=$(cat "$pkg/tools/goose/PIN")
+remote=$(cat "$pkg/tools/goose/REMOTE")
 
 [ -x "$goose" ] || { echo "no compiler at $goose; build the checkout" >&2; exit 1; }
 head=$(git -C "$gsrc" rev-parse HEAD)
@@ -150,7 +152,7 @@ for f in $files; do cp "$out/$f" "$pkg/src/$f"; done
 
 {
   echo "# Written by tools/regenerate.sh. Do not edit."
-  echo "goose_repository https://github.com/aardappel/goose"
+  echo "goose_repository ${remote%.git}"
   echo "goose_commit $pin"
   echo "runtime_version $version"
   for f in $files; do
