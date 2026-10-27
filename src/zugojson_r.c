@@ -2,9 +2,8 @@
 
    Every call into Goose goes through goose_r_run(). A Goose runtime
    failure then comes back here as a message, after the data stacks have
-   been rewound, and only then is anything done with R's API. Nothing in a
-   body function may call R: an R error raised inside goose_r_run() would
-   jump over the stack rewind and leave Goose's fault handler installed. */
+   been rewound, and only then is the R condition raised. A body may call
+   R, but holds R objects only in something protected before the call. */
 
 #include <limits.h>
 #include <stdint.h>
@@ -119,6 +118,67 @@ SEXP zugojson_c_index_probe(SEXP i) {
   return Rf_ScalarReal((double) c.v);
 }
 
+/* Test hook: a body that grows the stacks, calls fn() in R and then, if
+   asked, fails in Goose. holder is protected outside goose_r_run(), so the
+   body never needs PROTECT. */
+
+typedef struct {
+  SEXP holder;
+  int fail_after;
+  int64_t v;
+} callback_call;
+
+static const uint8_t *callback_input(int64_t *n) {
+  static uint8_t buf[2 * 10000 + 1];
+  static int64_t len = 0;
+  if (!len) {
+    for (int k = 0; k < 10000; k++) {
+      buf[len++] = k ? ',' : '[';
+      buf[len++] = '1';
+    }
+    buf[len++] = ']';
+  }
+  *n = len;
+  return buf;
+}
+
+static void callback_body(void *p) {
+  callback_call *c = p;
+  sl_u8 in;
+  int64_t n;
+  in.data = (uint8_t *) callback_input(&in.len);
+  (void) zugojson_format(in, 0, &n);
+  SEXP call = VECTOR_ELT(c->holder, 0);
+  SET_VECTOR_ELT(c->holder, 1, Rf_eval(call, R_GlobalEnv));
+  if (c->fail_after) c->v = zugojson_index_probe(7);
+}
+
+SEXP zugojson_c_callback_probe(SEXP fn, SEXP fail_after) {
+  SEXP holder = PROTECT(Rf_allocVector(VECSXP, 2));
+  SET_VECTOR_ELT(holder, 0, Rf_lang1(fn));
+  callback_call c = {holder, Rf_asLogical(fail_after) == TRUE, 0};
+  char err[ERRLEN];
+  if (goose_r_run(callback_body, &c, err, sizeof err)) {
+    UNPROTECT(1);
+    return result("runtime", err, -1);
+  }
+  UNPROTECT(1);
+  return R_NilValue;
+}
+
+SEXP zugojson_c_stack_use(void) {
+  double use[64];
+  int n = goose_r_stack_use(use, 64);
+  SEXP out = PROTECT(Rf_allocVector(REALSXP, n));
+  for (int i = 0; i < n; i++) REAL(out)[i] = use[i];
+  UNPROTECT(1);
+  return out;
+}
+
+SEXP zugojson_c_fault_handler_installed(void) {
+  return Rf_ScalarLogical(goose_r_fault_handler_installed());
+}
+
 /* --- registration ------------------------------------------------------- */
 
 static void init_body(void *unused) {
@@ -132,6 +192,10 @@ static const R_CallMethodDef call_methods[] = {
     {"zugojson_c_format", (DL_FUNC) &zugojson_c_format, 2},
     {"zugojson_c_valid", (DL_FUNC) &zugojson_c_valid, 1},
     {"zugojson_c_index_probe", (DL_FUNC) &zugojson_c_index_probe, 1},
+    {"zugojson_c_callback_probe", (DL_FUNC) &zugojson_c_callback_probe, 2},
+    {"zugojson_c_stack_use", (DL_FUNC) &zugojson_c_stack_use, 0},
+    {"zugojson_c_fault_handler_installed",
+     (DL_FUNC) &zugojson_c_fault_handler_installed, 0},
     {NULL, NULL, 0}};
 
 void R_init_zugojson(DllInfo *dll) {

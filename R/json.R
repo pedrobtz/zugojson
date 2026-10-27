@@ -131,3 +131,23 @@ index_probe <- function(i) {
   }
   res
 }
+
+# Test hook: calls fn() from inside a Goose call, after growing the data
+# stacks. With fail_after, Goose then fails a bounds check.
+callback_probe <- function(fn, fail_after = FALSE) {
+  res <- .Call(zugojson_c_callback_probe, fn, fail_after)
+  if (is.character(res)) {
+    unwrap(res)
+  }
+  invisible(res)
+}
+
+# Test hook: bytes in use on each Goose data stack.
+stack_use <- function() {
+  .Call(zugojson_c_stack_use)
+}
+
+# Test hook: TRUE while Goose's SIGSEGV handler is installed.
+fault_handler_installed <- function() {
+  .Call(zugojson_c_fault_handler_installed)
+}

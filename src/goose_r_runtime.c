@@ -7,6 +7,9 @@
    - Nothing ends the process. Every runtime failure jumps back to
      goose_r_run(), which rewinds the data stacks and hands the message to
      the caller, who raises an ordinary R error.
+   - Bodies may call R. goose_r_run() runs inside R_UnwindProtect, so an R
+     error or interrupt still rewinds the stacks and restores R's handlers
+     before R carries on unwinding. A nested call is refused.
    - No stdout, stderr, setvbuf, sigaltstack or threads.
    - The guard-page fault handler is installed only while Goose code runs
      inside goose_r_run(). R's own handlers are restored afterwards, and a
@@ -34,7 +37,8 @@
 #include <sys/mman.h>
 #include <unistd.h>
 
-#include <R_ext/Error.h>
+#define R_NO_REMAP
+#include <Rinternals.h>
 
 #include "goose_r_runtime.h"
 #include "goose_version.h"
@@ -206,13 +210,66 @@ static void fault_handler(int sig, siginfo_t *info, void *ctx) {
     sigaction(sig, sig == SIGSEGV ? &prev_segv : &prev_bus, NULL);
 }
 
-int goose_r_run(void (*body)(void *), void *data, char *err, size_t errlen) {
-    sigjmp_buf jump;
-    sigjmp_buf *outer = active_jump;
-    struct sigaction sa;
-    long i;
+static void restore_handlers(void) {
+    sigaction(SIGSEGV, &prev_segv, NULL);
+#ifdef SIGBUS
+    sigaction(SIGBUS, &prev_bus, NULL);
+#endif
+}
 
-    for (i = 0; i < nregions; i++) regions[i].saved = regions[i].stack->top;
+/* Stacks that existed before the call go back to their old tops; regions
+   made during it (goose_init) are left as they are. */
+static void rewind_stacks(void) {
+    for (long i = 0; i < nregions; i++)
+        if (regions[i].saved) regions[i].stack->top = regions[i].saved;
+}
+
+typedef struct {
+    void (*body)(void *);
+    void *data;
+    int failed;
+} gs_r_call;
+
+static SEXP run_body(void *p) {
+    gs_r_call *c = p;
+    sigjmp_buf jump;
+    if (sigsetjmp(jump, 1) == 0) {
+        active_jump = &jump;
+        c->body(c->data);
+    } else {
+        c->failed = 1;
+        rewind_stacks();
+    }
+    active_jump = NULL;
+    return R_NilValue;
+}
+
+/* Runs only when R unwinds out of the body: an R error, an interrupt or a
+   condition handler's jump. R continues the unwind afterwards. */
+static void unwind_cleanup(void *p, Rboolean jump) {
+    (void)p;
+    if (!jump) return;
+    rewind_stacks();
+    active_jump = NULL;
+    restore_handlers();
+}
+
+int goose_r_run(void (*body)(void *), void *data, char *err, size_t errlen) {
+    /* One continuation token, reused: calls never nest. */
+    static SEXP token = NULL;
+    struct sigaction sa;
+    gs_r_call c = {body, data, 0};
+
+    if (active_jump) {
+        if (err && errlen) snprintf(err, errlen, "Goose re-entered from R during a Goose call");
+        return 1;
+    }
+    if (!token) {
+        token = R_MakeUnwindCont();
+        R_PreserveObject(token);
+    }
+
+    for (long i = 0; i < nregions; i++) regions[i].saved = regions[i].stack->top;
 
     memset(&sa, 0, sizeof sa);
     sa.sa_sigaction = fault_handler;
@@ -223,23 +280,22 @@ int goose_r_run(void (*body)(void *), void *data, char *err, size_t errlen) {
     sigaction(SIGBUS, &sa, &prev_bus);
 #endif
 
-    int failed = 0;
-    if (sigsetjmp(jump, 1) == 0) {
-        active_jump = &jump;
-        body(data);
-    } else {
-        failed = 1;
-        /* Stacks that existed before the call go back to their old tops;
-           regions made during it (goose_init) are left as they are. */
-        for (i = 0; i < nregions; i++)
-            if (regions[i].saved) regions[i].stack->top = regions[i].saved;
-        if (err && errlen) snprintf(err, errlen, "%s", failure);
-    }
-    active_jump = outer;
+    R_UnwindProtect(run_body, &c, unwind_cleanup, NULL, token);
 
-    sigaction(SIGSEGV, &prev_segv, NULL);
-#ifdef SIGBUS
-    sigaction(SIGBUS, &prev_bus, NULL);
-#endif
-    return failed;
+    restore_handlers();
+    if (c.failed && err && errlen) snprintf(err, errlen, "%s", failure);
+    return c.failed;
+}
+
+int goose_r_stack_use(double *use, int max) {
+    int n = nregions < max ? (int)nregions : max;
+    for (int i = 0; i < n; i++)
+        use[i] = (double)(regions[i].stack->top - regions[i].base);
+    return n;
+}
+
+int goose_r_fault_handler_installed(void) {
+    struct sigaction cur;
+    sigaction(SIGSEGV, NULL, &cur);
+    return (cur.sa_flags & SA_SIGINFO) && cur.sa_sigaction == fault_handler;
 }

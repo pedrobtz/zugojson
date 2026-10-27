@@ -174,7 +174,7 @@ them by default. Each one has a test in the task that owns the code.
   Their R wrappers are `callback_probe(fn, fail_after = FALSE)`,
   `stack_use()` and `fault_handler_installed()`.
 
-- [ ] **Step 1: Write the failing tests** in `test-runtime.R`:
+- [x] **Step 1: Write the failing tests** in `test-runtime.R`:
 
 ```r
 probe_error <- function() {
@@ -215,9 +215,9 @@ test_that("R's recursion limit still works inside a Goose call", {
 })
 ```
 
-- [ ] **Step 2:** Run `Rscript -e 'devtools::test(filter = "runtime")'`.
+- [x] **Step 2:** Run `Rscript -e 'devtools::test(filter = "runtime")'`.
   Expected: FAIL, because `callback_probe` is not defined.
-- [ ] **Step 3: Implement.**
+- [x] **Step 3: Implement.**
   - `goose_r_run` wraps the `sigsetjmp` and `body` call in
     `R_UnwindProtect`. The cleanup runs only when `jump` is TRUE. It
     rewinds the stack tops, restores `active_jump` and both signal
@@ -232,15 +232,31 @@ test_that("R's recursion limit still works inside a Goose call", {
        that the entry point protected before the run (no `PROTECT` inside
        the body);
     3. if `fail_after` is set, it calls `zugojson_index_probe(7)`.
-- [ ] **Step 4:** Run `Rscript -e 'devtools::test(shuffle = TRUE)'`.
+- [x] **Step 4:** Run `Rscript -e 'devtools::test(shuffle = TRUE)'`.
   Expected: all tests pass.
-- [ ] **Step 5:** Rewrite the `CLAUDE.md` invariant to say: "Bodies may
+- [x] **Step 5:** Rewrite the `CLAUDE.md` invariant to say: "Bodies may
   call R. They hold R objects only in a holder protected outside
   `goose_r_run()`, never with `PROTECT` inside it." Then run
   `devtools::check()`, `tools/check-symbols.sh` and
   `Rscript tools/bench.R piece0`. Expected: check clean, and `per_call`
   within 10% of baseline (the cost of `R_UnwindProtect`).
-- [ ] **Step 6:** Commit: `Let Goose bodies call R through R_UnwindProtect`.
+- [x] **Step 6:** Commit: `Let Goose bodies call R through R_UnwindProtect`.
+
+**Deviations (2026-10-27).**
+- The continuation token is made once and kept with `R_PreserveObject`,
+  not made and protected on every call. Calls never nest, so one token
+  is enough, and the hot path allocates nothing.
+- `probe_error` is defined inside its `test_that()`. At file level,
+  `shuffle = TRUE` sometimes ran it after the test that uses it.
+- `bench-piece0-run{1,2,3}.csv` replace `bench-piece0.csv`: the median of
+  three runs, as Task 1's noise finding asks. `per_call` is 2.3% over
+  baseline. The document rows are within the noise.
+- Benchmarks need `R CMD INSTALL --preclean .`. A plain install reused
+  `-O0` objects that `devtools::document()` had left in `src/`, and every
+  document row came out 2.5–3.5 times slower.
+- `devtools::check()` gives one NOTE locally, "checking for future file
+  timestamps". It needs a time server the sandbox cannot reach. CI is the
+  judge.
 
 ### Task 3: Pin plumbing for a Goose fork
 
