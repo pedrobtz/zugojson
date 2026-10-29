@@ -6,7 +6,7 @@
    Link it with the runtime that `goose --emit-runtime` writes. */
 
 #define GS_SEPARATE_RUNTIME 1
-#define GS_RUNTIME_VERSION a5dbd11b6309
+#define GS_RUNTIME_VERSION e9a5f91e57ed
 /* ==== runtime.h ==== */
 /* Goose runtime — the part every compiler-generated C file starts with.
    Plain C99 (+ #pragma pack, unaligned scalar access); compiles with MSVC,
@@ -123,6 +123,28 @@
 #else
 #define GS_NORETURN __attribute__((noreturn))
 #define GS_NOINLINE __attribute__((noinline))
+#endif
+/* A scalar read or written in place in packed memory: a data stack, the
+   bytes of a packed type. Values there start at any address, so the C
+   access says so, which C requires and UBSan's alignment check enforces.
+   On every target Goose supports it is the same single load or store as
+   the plain type. Without the attribute, the plain type, as before.
+   An exported header (--header) carries the same block, hence the guard. */
+#ifndef GS_UA_TYPES
+#define GS_UA_TYPES
+#if defined(__GNUC__) || defined(__clang__)
+#define GS_UNALIGNED __attribute__((aligned(1)))
+#else
+#define GS_UNALIGNED
+#endif
+typedef int16_t gs_ua_i16 GS_UNALIGNED;
+typedef int32_t gs_ua_i32 GS_UNALIGNED;
+typedef int64_t gs_ua_i64 GS_UNALIGNED;
+typedef uint16_t gs_ua_u16 GS_UNALIGNED;
+typedef uint32_t gs_ua_u32 GS_UNALIGNED;
+typedef uint64_t gs_ua_u64 GS_UNALIGNED;
+typedef float gs_ua_f32 GS_UNALIGNED;
+typedef double gs_ua_f64 GS_UNALIGNED;
 #endif
 /* Inlined at every call: the byte search's helpers (runtime_impl.h), and a
    function Goose wanted to inline but could not (FnSpec::cinline). */
@@ -1171,6 +1193,7 @@ struct json_Number_g4 {
     int64_t end_g;
 };
 
+typedef uint8_t *gs_ua_uint8_tp GS_UNALIGNED;
 enum {
     Json_g_Null_g_k = 0,
     Json_g_Bool_g_k = 1,
@@ -1188,7 +1211,7 @@ typedef struct { uint8_t e[17]; } a17_u8;
 
 typedef struct { uint8_t len; uint8_t e[40]; } l40_u8;
 
-typedef struct { uint32_t *data; int64_t len; } sl_u32;
+typedef struct { gs_ua_u32 *data; int64_t len; } sl_u32;
 
 typedef struct Json_g_Bool_p Json_g_Bool_p;
 struct Json_g_Bool_p {
@@ -1476,7 +1499,7 @@ GS_API uint8_t gs_trim_memory(void);
 /* ---- extern prototypes ---- */
 double zugojson_strtod(sl_u8);
 double ldexp(double, int32_t);
-double frexp(double, int32_t *);
+double frexp(double, gs_ua_i32 *);
 
 /* ---- prototypes ---- */
 static uint8_t * parse_g(void *p0_data, int64_t p0_len, gs_stack *gs_dst1, int64_t *gs_rl1, int64_t gs_sp);
@@ -1488,17 +1511,17 @@ static void expect_g(uint8_t p0, int64_t *fv0, sl_u8 *fv1, int64_t gs_sp);
 static void fail_g(void *p0_data, int64_t p0_len, int64_t *fv0, gs_stack *gs_dst0, int64_t *gs_rl0, int64_t gs_sp);
 static void parse_word_g(void *p0_data, int64_t p0_len, int64_t *fv0, sl_u8 *fv1, int64_t gs_sp);
 static double parse_number_g(int64_t *fv0, sl_u8 *fv1, int64_t gs_sp);
-static GS_INLINE int64_t shortest_digits_g(double p0, a20_u8 * p1, int64_t *gs_r1, int64_t gs_sp);
-static GS_INLINE int64_t json_ryu_digits_g4(double p0, void *p1_data, int64_t p1_len, int64_t *gs_r1);
+static GS_INLINE int64_t shortest_digits_g(double p0, a20_u8 * p1, gs_ua_i64 *gs_r1, int64_t gs_sp);
+static GS_INLINE int64_t json_ryu_digits_g4(double p0, void *p1_data, int64_t p1_len, gs_ua_i64 *gs_r1);
 static uint64_t json_bits_of_g4(double p0);
-static GS_INLINE uint64_t json_mul_wide_g4(uint64_t p0, uint64_t p1, uint64_t *gs_r1);
-static int64_t json_general_digits_g4(double p0, void *p1_data, int64_t p1_len, int64_t *gs_r1, int64_t gs_sp);
-static int64_t json_shortest_digits_g4(double p0, void *p1_data, int64_t p1_len, int64_t *gs_r1, int64_t gs_sp);
-static int64_t json_scan_exponent_g4(void *p0_data, int64_t p0_len, int64_t p1, int64_t *gs_r1);
+static GS_INLINE uint64_t json_mul_wide_g4(uint64_t p0, uint64_t p1, gs_ua_u64 *gs_r1);
+static int64_t json_general_digits_g4(double p0, void *p1_data, int64_t p1_len, gs_ua_i64 *gs_r1, int64_t gs_sp);
+static int64_t json_shortest_digits_g4(double p0, void *p1_data, int64_t p1_len, gs_ua_i64 *gs_r1, int64_t gs_sp);
+static int64_t json_scan_exponent_g4(void *p0_data, int64_t p0_len, int64_t p1, gs_ua_i64 *gs_r1);
 static json_Number_g4 json_scan_number_general_g4(void *p0_data, int64_t p0_len, int64_t p1, int64_t gs_sp);
 static double json_scale_g4(double p0, int64_t p1);
 static double json_round_near_g4(uint64_t p0, int64_t p1, double p2);
-static GS_INLINE uint64_t json_shl_wide_g4(uint64_t p0, uint64_t p1, int64_t p2, uint64_t *gs_r1);
+static GS_INLINE uint64_t json_shl_wide_g4(uint64_t p0, uint64_t p1, int64_t p2, gs_ua_u64 *gs_r1);
 static double json_eisel_lemire_g4(uint64_t p0, int64_t p1, uint8_t *gs_r1, int64_t gs_sp);
 static double json_round_exact_g4(void *p0_data, int64_t p0_len, int64_t p1, int64_t p2, int64_t p3, double p4, int64_t gs_sp);
 static sl_u8 zugojson_format_g(void *p0_data, int64_t p0_len, int64_t p1, int64_t gs_sp);
@@ -1669,7 +1692,7 @@ static uint8_t * parse_value_g(void *key_g_data, int64_t key_g_len, int64_t *pos
                 return t13;
             }
             head_g = t12;
-            uint8_t * *t14 = &(first_g);
+            gs_ua_uint8_tp *t14 = &(first_g);
             (*t14) = head_g;
             uint8_t * last_g = head_g;
             count_g = 1;
@@ -1711,14 +1734,14 @@ static uint8_t * parse_value_g(void *key_g_data, int64_t key_g_len, int64_t *pos
                     return t23;
                 }
                 child_g = t22;
-                uint32_t *t24 = &((*(uint32_t *)(last_g)));
+                gs_ua_u32 *t24 = &((*(gs_ua_u32 *)(last_g)));
                 int64_t t25 = (uint8_t *)(child_g) ? (int64_t)((uint8_t *)(child_g) - ((uint8_t *)&(*t24))) : 0;
                 if ((uint8_t *)(child_g) && !t25) gs_abort(GS_E_RELNULL, gs_file0, 186);
                 #if GS_STACK_RESERVE > (1ull << 31)
                 if (t25 < -(1LL << 31) || t25 >= (1LL << 31)) gs_abort(GS_E_RELOFF, gs_file0, 186);
                 #endif
-                *(int32_t *)((uint8_t *)&(*t24)) = (int32_t)t25;
-                uint8_t * *t26 = &(last_g);
+                *(gs_ua_i32 *)((uint8_t *)&(*t24)) = (int32_t)t25;
+                gs_ua_uint8_tp *t26 = &(last_g);
                 (*t26) = child_g;
                 count_g = gs_add_i64(count_g, 1, gs_file0, 188);
             }
@@ -1735,7 +1758,7 @@ static uint8_t * parse_value_g(void *key_g_data, int64_t key_g_len, int64_t *pos
             #if GS_STACK_RESERVE > (1ull << 31)
             if (t30 < -(1LL << 31) || t30 >= (1LL << 31)) gs_abort(GS_E_RELOFF, gs_file0, 193);
             #endif
-            *(int32_t *)(t29) = (int32_t)t30;
+            *(gs_ua_i32 *)(t29) = (int32_t)t30;
             t78 += 4;
             int64_t t31 = key_g.len;
             t78 += gs_uleb_write(t78, (uint64_t)(t31));
@@ -1749,7 +1772,7 @@ static uint8_t * parse_value_g(void *key_g_data, int64_t key_g_len, int64_t *pos
             #if GS_STACK_RESERVE > (1ull << 31)
             if (t33 < -(1LL << 31) || t33 >= (1LL << 31)) gs_abort(GS_E_RELOFF, gs_file0, 193);
             #endif
-            *(int32_t *)(t32) = (int32_t)t33;
+            *(gs_ua_i32 *)(t32) = (int32_t)t33;
             t78 += 4;
             t78 += gs_zig_write(t78, count_g);
             t79++;
@@ -1766,7 +1789,7 @@ static uint8_t * parse_value_g(void *key_g_data, int64_t key_g_len, int64_t *pos
         #if GS_STACK_RESERVE > (1ull << 31)
         if (t37 < -(1LL << 31) || t37 >= (1LL << 31)) gs_abort(GS_E_RELOFF, gs_file0, 194);
         #endif
-        *(int32_t *)(t36) = (int32_t)t37;
+        *(gs_ua_i32 *)(t36) = (int32_t)t37;
         t78 += 4;
         int64_t t38 = key_g.len;
         t78 += gs_uleb_write(t78, (uint64_t)(t38));
@@ -1780,7 +1803,7 @@ static uint8_t * parse_value_g(void *key_g_data, int64_t key_g_len, int64_t *pos
         #if GS_STACK_RESERVE > (1ull << 31)
         if (t40 < -(1LL << 31) || t40 >= (1LL << 31)) gs_abort(GS_E_RELOFF, gs_file0, 194);
         #endif
-        *(int32_t *)(t39) = (int32_t)t40;
+        *(gs_ua_i32 *)(t39) = (int32_t)t40;
         t78 += 4;
         t78 += gs_zig_write(t78, count_g);
         t79++;
@@ -1799,7 +1822,7 @@ static uint8_t * parse_value_g(void *key_g_data, int64_t key_g_len, int64_t *pos
         #if GS_STACK_RESERVE > (1ull << 31)
         if (t44 < -(1LL << 31) || t44 >= (1LL << 31)) gs_abort(GS_E_RELOFF, gs_file0, 199);
         #endif
-        *(int32_t *)(t43) = (int32_t)t44;
+        *(gs_ua_i32 *)(t43) = (int32_t)t44;
         t78 += 4;
         int64_t t45 = key_g.len;
         t78 += gs_uleb_write(t78, (uint64_t)(t45));
@@ -1844,7 +1867,7 @@ static uint8_t * parse_value_g(void *key_g_data, int64_t key_g_len, int64_t *pos
         #if GS_STACK_RESERVE > (1ull << 31)
         if (t54 < -(1LL << 31) || t54 >= (1LL << 31)) gs_abort(GS_E_RELOFF, gs_file0, 200);
         #endif
-        *(int32_t *)(t53) = (int32_t)t54;
+        *(gs_ua_i32 *)(t53) = (int32_t)t54;
         t78 += 4;
         int64_t t55 = key_g.len;
         t78 += gs_uleb_write(t78, (uint64_t)(t55));
@@ -1877,7 +1900,7 @@ static uint8_t * parse_value_g(void *key_g_data, int64_t key_g_len, int64_t *pos
         #if GS_STACK_RESERVE > (1ull << 31)
         if (t61 < -(1LL << 31) || t61 >= (1LL << 31)) gs_abort(GS_E_RELOFF, gs_file0, 201);
         #endif
-        *(int32_t *)(t60) = (int32_t)t61;
+        *(gs_ua_i32 *)(t60) = (int32_t)t61;
         t78 += 4;
         int64_t t62 = key_g.len;
         t78 += gs_uleb_write(t78, (uint64_t)(t62));
@@ -1910,7 +1933,7 @@ static uint8_t * parse_value_g(void *key_g_data, int64_t key_g_len, int64_t *pos
         #if GS_STACK_RESERVE > (1ull << 31)
         if (t68 < -(1LL << 31) || t68 >= (1LL << 31)) gs_abort(GS_E_RELOFF, gs_file0, 202);
         #endif
-        *(int32_t *)(t67) = (int32_t)t68;
+        *(gs_ua_i32 *)(t67) = (int32_t)t68;
         t78 += 4;
         int64_t t69 = key_g.len;
         t78 += gs_uleb_write(t78, (uint64_t)(t69));
@@ -1932,7 +1955,7 @@ static uint8_t * parse_value_g(void *key_g_data, int64_t key_g_len, int64_t *pos
     #if GS_STACK_RESERVE > (1ull << 31)
     if (t73 < -(1LL << 31) || t73 >= (1LL << 31)) gs_abort(GS_E_RELOFF, gs_file0, 203);
     #endif
-    *(int32_t *)(t72) = (int32_t)t73;
+    *(gs_ua_i32 *)(t72) = (int32_t)t73;
     t78 += 4;
     int64_t t74 = key_g.len;
     t78 += gs_uleb_write(t78, (uint64_t)(t74));
@@ -1947,7 +1970,7 @@ static uint8_t * parse_value_g(void *key_g_data, int64_t key_g_len, int64_t *pos
         uint8_t * t76 = {0};
         return t76;
     }
-    *(double *)t78 = t75;
+    *(gs_ua_f64 *)t78 = t75;
     t78 += 8;
     t79++;
     t70 = t71;
@@ -2722,7 +2745,7 @@ static double parse_number_g(int64_t *pos_g, sl_u8 *text_g, int64_t gs_sp) {
     return t97;
 }
 
-static GS_INLINE int64_t shortest_digits_g(double v_g, a20_u8 * dig_g, int64_t *gs_r1, int64_t gs_sp) {
+static GS_INLINE int64_t shortest_digits_g(double v_g, a20_u8 * dig_g, gs_ua_i64 *gs_r1, int64_t gs_sp) {
     sl_u8 t4;
     sl_u8 t16;
     int64_t n_g;
@@ -2768,7 +2791,7 @@ static GS_INLINE int64_t shortest_digits_g(double v_g, a20_u8 * dig_g, int64_t *
     return t18;
 }
 
-static GS_INLINE int64_t json_ryu_digits_g4(double x_g, void *out_g_2_data, int64_t out_g_2_len, int64_t *gs_r1) {
+static GS_INLINE int64_t json_ryu_digits_g4(double x_g, void *out_g_2_data, int64_t out_g_2_len, gs_ua_i64 *gs_r1) {
     sl_u8 out_g_2; out_g_2.data = out_g_2_data; out_g_2.len = out_g_2_len;
     sl_u8 out_g_3;
     sl_u8 out_g_4;
@@ -3094,7 +3117,7 @@ static uint64_t json_bits_of_g4(double x_g) {
     return t14;
 }
 
-static GS_INLINE uint64_t json_mul_wide_g4(uint64_t a_g, uint64_t b_g, uint64_t *gs_r1) {
+static GS_INLINE uint64_t json_mul_wide_g4(uint64_t a_g, uint64_t b_g, gs_ua_u64 *gs_r1) {
     uint64_t a0_g = (uint64_t)((uint64_t)((uint64_t)(a_g)) & (uint64_t)(4294967295LL));
     uint64_t a1_g = gs_shr_u64((uint64_t)(a_g), (int64_t)(32));
     uint64_t b0_g = (uint64_t)((uint64_t)((uint64_t)(b_g)) & (uint64_t)(4294967295LL));
@@ -3114,7 +3137,7 @@ static GS_INLINE uint64_t json_mul_wide_g4(uint64_t a_g, uint64_t b_g, uint64_t 
     return t2;
 }
 
-static int64_t json_general_digits_g4(double x_g, void *out_g_2_data, int64_t out_g_2_len, int64_t *gs_r1, int64_t gs_sp) {
+static int64_t json_general_digits_g4(double x_g, void *out_g_2_data, int64_t out_g_2_len, gs_ua_i64 *gs_r1, int64_t gs_sp) {
     sl_u8 out_g_2; out_g_2.data = out_g_2_data; out_g_2.len = out_g_2_len;
     sl_u8 out_g_3;
     sl_u8 out_g_4;
@@ -3245,7 +3268,7 @@ static int64_t json_general_digits_g4(double x_g, void *out_g_2_data, int64_t ou
     return t51;
 }
 
-static int64_t json_shortest_digits_g4(double x_g, void *out_g_2_data, int64_t out_g_2_len, int64_t *gs_r1, int64_t gs_sp) {
+static int64_t json_shortest_digits_g4(double x_g, void *out_g_2_data, int64_t out_g_2_len, gs_ua_i64 *gs_r1, int64_t gs_sp) {
     sl_u8 out_g_2; out_g_2.data = out_g_2_data; out_g_2.len = out_g_2_len;
     l32_u8 text_g;
     l32_u8 t0;
@@ -3507,7 +3530,7 @@ static int64_t json_shortest_digits_g4(double x_g, void *out_g_2_data, int64_t o
     return t113;
 }
 
-static int64_t json_scan_exponent_g4(void *text_g_data, int64_t text_g_len, int64_t at_g, int64_t *gs_r1) {
+static int64_t json_scan_exponent_g4(void *text_g_data, int64_t text_g_len, int64_t at_g, gs_ua_i64 *gs_r1) {
     sl_u8 text_g; text_g.data = text_g_data; text_g.len = text_g_len;
     int64_t pos_g = at_g;
     uint8_t neg_g = 0;
@@ -4123,7 +4146,7 @@ static double json_round_near_g4(uint64_t w_g, int64_t e10_g, double v_g) {
     return t36;
 }
 
-static GS_INLINE uint64_t json_shl_wide_g4(uint64_t h_g, uint64_t l_g, int64_t s_g, uint64_t *gs_r1) {
+static GS_INLINE uint64_t json_shl_wide_g4(uint64_t h_g, uint64_t l_g, int64_t s_g, gs_ua_u64 *gs_r1) {
     if ((uint8_t)((int64_t)((int64_t)(s_g)) >= (int64_t)(64))) {
         uint64_t t0;
         t0 = gs_shl_u64((uint64_t)(l_g), (int64_t)(gs_sub_i64((int64_t)(s_g), 64, gs_file2, 848)));
@@ -4302,15 +4325,15 @@ static double json_round_exact_g4(void *text_g_data, int64_t text_g_len, int64_t
             {
                 uint64_t carry_g = a_g;
                 for (int64_t t10 = 0; t10 < ((digits_g.len)); t10++) {
-                    uint32_t * limb_g = &(*(uint32_t *)(((digits_g.base)) + t10 * 4));
+                    gs_ua_u32 * limb_g = &(*(gs_ua_u32 *)(((digits_g.base)) + t10 * 4));
                     uint64_t t_g = gs_add_u64((uint64_t)(gs_mul_u64((uint64_t)((uint64_t)((*limb_g))), 10)), carry_g);
                     (*limb_g) = (uint32_t)(t_g);
                     carry_g = gs_shr_u64((uint64_t)(t_g), (int64_t)(32));
                 }
                 if ((uint8_t)((uint64_t)((uint64_t)(carry_g)) > (uint64_t)(0))) {
                     uint32_t t13 = (uint32_t)(carry_g);
-                    uint32_t *t14 = (uint32_t *)t302;
-                    *(uint32_t *)t302 = t13;
+                    gs_ua_u32 *t14 = (gs_ua_u32 *)t302;
+                    *(gs_ua_u32 *)t302 = t13;
                     t302 += 4;
                     digits_g.len++;
                 }
@@ -4328,7 +4351,7 @@ static double json_round_exact_g4(void *text_g_data, int64_t text_g_len, int64_t
             int32_t e_g = 0;
             double f_g;
             double t15 = v_g;
-            int32_t * t16 = &e_g;
+            gs_ua_i32 * t16 = &e_g;
             double t17 = frexp(t15, t16);
             f_g = t17;
             m_g = (uint64_t)gs_f2iwrap(((double)((double)(f_g)) * (double)(9007199254740992.0)));
@@ -4343,7 +4366,7 @@ static double json_round_exact_g4(void *text_g_data, int64_t text_g_len, int64_t
     uint8_t *t304 = GS(gs_sp + 2)->top;
     for (;;) {
         int64_t up_g;
-        t20.data = (uint32_t *)((digits_g.base)); t20.len = (digits_g.len);
+        t20.data = (gs_ua_u32 *)((digits_g.base)); t20.len = (digits_g.len);
         digits_g_2 = t20;
         int64_t e10_g_2 = e10_g;
         uint64_t h_g = gs_add_u64((uint64_t)(gs_mul_u64((uint64_t)(2), m_g)), 1);
@@ -4359,14 +4382,14 @@ static double json_round_exact_g4(void *text_g_data, int64_t text_g_len, int64_t
             b_g.base = t304; b_g.len = 0;
             b_g.len = 0;
             uint32_t t24 = (uint32_t)(h_g);
-            uint32_t *t25 = (uint32_t *)t304;
-            *(uint32_t *)t304 = t24;
+            gs_ua_u32 *t25 = (gs_ua_u32 *)t304;
+            *(gs_ua_u32 *)t304 = t24;
             t304 += 4;
             b_g.len++;
             if ((uint8_t)((uint64_t)((uint64_t)(gs_shr_u64((uint64_t)(h_g), (int64_t)(32)))) > (uint64_t)(0))) {
                 uint32_t t26 = (uint32_t)(gs_shr_u64((uint64_t)(h_g), (int64_t)(32)));
-                uint32_t *t27 = (uint32_t *)t304;
-                *(uint32_t *)t304 = t26;
+                gs_ua_u32 *t27 = (gs_ua_u32 *)t304;
+                *(gs_ua_u32 *)t304 = t26;
                 t304 += 4;
                 b_g.len++;
             }
@@ -4379,15 +4402,15 @@ static double json_round_exact_g4(void *text_g_data, int64_t text_g_len, int64_t
                         {
                             uint64_t carry_g_2 = 0;
                             for (int64_t t32 = 0; t32 < ((a_g_2.len)); t32++) {
-                                uint32_t * limb_g_2 = &(*(uint32_t *)(((a_g_2.base)) + t32 * 4));
+                                gs_ua_u32 * limb_g_2 = &(*(gs_ua_u32 *)(((a_g_2.base)) + t32 * 4));
                                 uint64_t t_g_2 = gs_add_u64((uint64_t)(gs_mul_u64((uint64_t)((uint64_t)((*limb_g_2))), 1220703125)), carry_g_2);
                                 (*limb_g_2) = (uint32_t)(t_g_2);
                                 carry_g_2 = gs_shr_u64((uint64_t)(t_g_2), (int64_t)(32));
                             }
                             if ((uint8_t)((uint64_t)((uint64_t)(carry_g_2)) > (uint64_t)(0))) {
                                 uint32_t t35 = (uint32_t)(carry_g_2);
-                                uint32_t *t36 = (uint32_t *)t303;
-                                *(uint32_t *)t303 = t35;
+                                gs_ua_u32 *t36 = (gs_ua_u32 *)t303;
+                                *(gs_ua_u32 *)t303 = t35;
                                 t303 += 4;
                                 a_g_2.len++;
                             }
@@ -4404,15 +4427,15 @@ static double json_round_exact_g4(void *text_g_data, int64_t text_g_len, int64_t
                     {
                         uint64_t carry_g_3 = 0;
                         for (int64_t t41 = 0; t41 < ((a_g_2.len)); t41++) {
-                            uint32_t * limb_g_3 = &(*(uint32_t *)(((a_g_2.base)) + t41 * 4));
+                            gs_ua_u32 * limb_g_3 = &(*(gs_ua_u32 *)(((a_g_2.base)) + t41 * 4));
                             uint64_t t_g_3 = gs_add_u64((uint64_t)(gs_mul_u64((uint64_t)((uint64_t)((*limb_g_3))), m_g_3)), carry_g_3);
                             (*limb_g_3) = (uint32_t)(t_g_3);
                             carry_g_3 = gs_shr_u64((uint64_t)(t_g_3), (int64_t)(32));
                         }
                         if ((uint8_t)((uint64_t)((uint64_t)(carry_g_3)) > (uint64_t)(0))) {
                             uint32_t t44 = (uint32_t)(carry_g_3);
-                            uint32_t *t45 = (uint32_t *)t303;
-                            *(uint32_t *)t303 = t44;
+                            gs_ua_u32 *t45 = (gs_ua_u32 *)t303;
+                            *(gs_ua_u32 *)t303 = t44;
                             t303 += 4;
                             a_g_2.len++;
                         }
@@ -4427,15 +4450,15 @@ static double json_round_exact_g4(void *text_g_data, int64_t text_g_len, int64_t
                         {
                             uint64_t carry_g_4 = 0;
                             for (int64_t t50 = 0; t50 < ((b_g.len)); t50++) {
-                                uint32_t * limb_g_4 = &(*(uint32_t *)(((b_g.base)) + t50 * 4));
+                                gs_ua_u32 * limb_g_4 = &(*(gs_ua_u32 *)(((b_g.base)) + t50 * 4));
                                 uint64_t t_g_4 = gs_add_u64((uint64_t)(gs_mul_u64((uint64_t)((uint64_t)((*limb_g_4))), 1220703125)), carry_g_4);
                                 (*limb_g_4) = (uint32_t)(t_g_4);
                                 carry_g_4 = gs_shr_u64((uint64_t)(t_g_4), (int64_t)(32));
                             }
                             if ((uint8_t)((uint64_t)((uint64_t)(carry_g_4)) > (uint64_t)(0))) {
                                 uint32_t t53 = (uint32_t)(carry_g_4);
-                                uint32_t *t54 = (uint32_t *)t304;
-                                *(uint32_t *)t304 = t53;
+                                gs_ua_u32 *t54 = (gs_ua_u32 *)t304;
+                                *(gs_ua_u32 *)t304 = t53;
                                 t304 += 4;
                                 b_g.len++;
                             }
@@ -4452,15 +4475,15 @@ static double json_round_exact_g4(void *text_g_data, int64_t text_g_len, int64_t
                     {
                         uint64_t carry_g_5 = 0;
                         for (int64_t t59 = 0; t59 < ((b_g.len)); t59++) {
-                            uint32_t * limb_g_5 = &(*(uint32_t *)(((b_g.base)) + t59 * 4));
+                            gs_ua_u32 * limb_g_5 = &(*(gs_ua_u32 *)(((b_g.base)) + t59 * 4));
                             uint64_t t_g_5 = gs_add_u64((uint64_t)(gs_mul_u64((uint64_t)((uint64_t)((*limb_g_5))), m_g_5)), carry_g_5);
                             (*limb_g_5) = (uint32_t)(t_g_5);
                             carry_g_5 = gs_shr_u64((uint64_t)(t_g_5), (int64_t)(32));
                         }
                         if ((uint8_t)((uint64_t)((uint64_t)(carry_g_5)) > (uint64_t)(0))) {
                             uint32_t t62 = (uint32_t)(carry_g_5);
-                            uint32_t *t63 = (uint32_t *)t304;
-                            *(uint32_t *)t304 = t62;
+                            gs_ua_u32 *t63 = (gs_ua_u32 *)t304;
+                            *(gs_ua_u32 *)t304 = t62;
                             t304 += 4;
                             b_g.len++;
                         }
@@ -4476,15 +4499,15 @@ static double json_round_exact_g4(void *text_g_data, int64_t text_g_len, int64_t
                         {
                             uint64_t carry_g_6 = 0;
                             for (int64_t t68 = 0; t68 < ((a_g_2.len)); t68++) {
-                                uint32_t * limb_g_6 = &(*(uint32_t *)(((a_g_2.base)) + t68 * 4));
+                                gs_ua_u32 * limb_g_6 = &(*(gs_ua_u32 *)(((a_g_2.base)) + t68 * 4));
                                 uint64_t t_g_6 = gs_add_u64((uint64_t)(gs_mul_u64((uint64_t)((uint64_t)((*limb_g_6))), 2147483648LL)), carry_g_6);
                                 (*limb_g_6) = (uint32_t)(t_g_6);
                                 carry_g_6 = gs_shr_u64((uint64_t)(t_g_6), (int64_t)(32));
                             }
                             if ((uint8_t)((uint64_t)((uint64_t)(carry_g_6)) > (uint64_t)(0))) {
                                 uint32_t t71 = (uint32_t)(carry_g_6);
-                                uint32_t *t72 = (uint32_t *)t303;
-                                *(uint32_t *)t303 = t71;
+                                gs_ua_u32 *t72 = (gs_ua_u32 *)t303;
+                                *(gs_ua_u32 *)t303 = t71;
                                 t303 += 4;
                                 a_g_2.len++;
                             }
@@ -4496,15 +4519,15 @@ static double json_round_exact_g4(void *text_g_data, int64_t text_g_len, int64_t
                     {
                         uint64_t carry_g_7 = 0;
                         for (int64_t t74 = 0; t74 < ((a_g_2.len)); t74++) {
-                            uint32_t * limb_g_7 = &(*(uint32_t *)(((a_g_2.base)) + t74 * 4));
+                            gs_ua_u32 * limb_g_7 = &(*(gs_ua_u32 *)(((a_g_2.base)) + t74 * 4));
                             uint64_t t_g_7 = gs_add_u64((uint64_t)(gs_mul_u64((uint64_t)((uint64_t)((*limb_g_7))), m_g_6)), carry_g_7);
                             (*limb_g_7) = (uint32_t)(t_g_7);
                             carry_g_7 = gs_shr_u64((uint64_t)(t_g_7), (int64_t)(32));
                         }
                         if ((uint8_t)((uint64_t)((uint64_t)(carry_g_7)) > (uint64_t)(0))) {
                             uint32_t t77 = (uint32_t)(carry_g_7);
-                            uint32_t *t78 = (uint32_t *)t303;
-                            *(uint32_t *)t303 = t77;
+                            gs_ua_u32 *t78 = (gs_ua_u32 *)t303;
+                            *(gs_ua_u32 *)t303 = t77;
                             t303 += 4;
                             a_g_2.len++;
                         }
@@ -4519,15 +4542,15 @@ static double json_round_exact_g4(void *text_g_data, int64_t text_g_len, int64_t
                         {
                             uint64_t carry_g_8 = 0;
                             for (int64_t t83 = 0; t83 < ((b_g.len)); t83++) {
-                                uint32_t * limb_g_8 = &(*(uint32_t *)(((b_g.base)) + t83 * 4));
+                                gs_ua_u32 * limb_g_8 = &(*(gs_ua_u32 *)(((b_g.base)) + t83 * 4));
                                 uint64_t t_g_8 = gs_add_u64((uint64_t)(gs_mul_u64((uint64_t)((uint64_t)((*limb_g_8))), 2147483648LL)), carry_g_8);
                                 (*limb_g_8) = (uint32_t)(t_g_8);
                                 carry_g_8 = gs_shr_u64((uint64_t)(t_g_8), (int64_t)(32));
                             }
                             if ((uint8_t)((uint64_t)((uint64_t)(carry_g_8)) > (uint64_t)(0))) {
                                 uint32_t t86 = (uint32_t)(carry_g_8);
-                                uint32_t *t87 = (uint32_t *)t304;
-                                *(uint32_t *)t304 = t86;
+                                gs_ua_u32 *t87 = (gs_ua_u32 *)t304;
+                                *(gs_ua_u32 *)t304 = t86;
                                 t304 += 4;
                                 b_g.len++;
                             }
@@ -4539,24 +4562,24 @@ static double json_round_exact_g4(void *text_g_data, int64_t text_g_len, int64_t
                     {
                         uint64_t carry_g_9 = 0;
                         for (int64_t t89 = 0; t89 < ((b_g.len)); t89++) {
-                            uint32_t * limb_g_9 = &(*(uint32_t *)(((b_g.base)) + t89 * 4));
+                            gs_ua_u32 * limb_g_9 = &(*(gs_ua_u32 *)(((b_g.base)) + t89 * 4));
                             uint64_t t_g_9 = gs_add_u64((uint64_t)(gs_mul_u64((uint64_t)((uint64_t)((*limb_g_9))), m_g_7)), carry_g_9);
                             (*limb_g_9) = (uint32_t)(t_g_9);
                             carry_g_9 = gs_shr_u64((uint64_t)(t_g_9), (int64_t)(32));
                         }
                         if ((uint8_t)((uint64_t)((uint64_t)(carry_g_9)) > (uint64_t)(0))) {
                             uint32_t t92 = (uint32_t)(carry_g_9);
-                            uint32_t *t93 = (uint32_t *)t304;
-                            *(uint32_t *)t304 = t92;
+                            gs_ua_u32 *t93 = (gs_ua_u32 *)t304;
+                            *(gs_ua_u32 *)t304 = t92;
                             t304 += 4;
                             b_g.len++;
                         }
                     }
                 }
             }
-            t94.data = (uint32_t *)((a_g_2.base)); t94.len = (a_g_2.len);
+            t94.data = (gs_ua_u32 *)((a_g_2.base)); t94.len = (a_g_2.len);
             a_g_3 = t94;
-            t95.data = (uint32_t *)((b_g.base)); t95.len = (b_g.len);
+            t95.data = (gs_ua_u32 *)((b_g.base)); t95.len = (b_g.len);
             b_g_2 = t95;
             {
                 if ((uint8_t)(!((int64_t)((int64_t)((a_g_3.len))) == (int64_t)((b_g_2.len))))) {
@@ -4573,14 +4596,14 @@ static double json_round_exact_g4(void *text_g_data, int64_t text_g_len, int64_t
                 for (int64_t t98 = 0; t98 < t97; t98++) {
                     i_g_3 = (int64_t)(t97 - 1 - t98);
                     int64_t t101 = i_g_3;
-                    uint32_t *t102 = a_g_3.data;
+                    gs_ua_u32 *t102 = a_g_3.data;
                     int64_t t103 = i_g_3;
-                    uint32_t *t104 = b_g_2.data;
+                    gs_ua_u32 *t104 = b_g_2.data;
                     if ((uint8_t)(!((uint32_t)((uint32_t)(t102[t101])) == (uint32_t)(t104[t103])))) {
                         int64_t t105 = i_g_3;
-                        uint32_t *t106 = a_g_3.data;
+                        gs_ua_u32 *t106 = a_g_3.data;
                         int64_t t107 = i_g_3;
-                        uint32_t *t108 = b_g_2.data;
+                        gs_ua_u32 *t108 = b_g_2.data;
                         if ((uint8_t)((uint32_t)((uint32_t)(t106[t105])) < (uint32_t)(t108[t107]))) {
                             up_g = -1;
                         } else {
@@ -4629,7 +4652,7 @@ static double json_round_exact_g4(void *text_g_data, int64_t text_g_len, int64_t
         if (!((uint8_t)((uint64_t)((uint64_t)(m_g)) == (uint64_t)(4503599627370496LL)))) goto L113;
         if (!((uint8_t)((int64_t)((int64_t)(k_g)) > (int64_t)(-1074)))) goto L113;
         {
-            t114.data = (uint32_t *)((digits_g.base)); t114.len = (digits_g.len);
+            t114.data = (gs_ua_u32 *)((digits_g.base)); t114.len = (digits_g.len);
             digits_g_3 = t114;
             int64_t e10_g_3 = e10_g;
             uint64_t h_g_2 = gs_sub_u64((uint64_t)(gs_mul_u64((uint64_t)(4), m_g)), 1);
@@ -4645,14 +4668,14 @@ static double json_round_exact_g4(void *text_g_data, int64_t text_g_len, int64_t
                 b_g_3.base = t304; b_g_3.len = 0;
                 b_g_3.len = 0;
                 uint32_t t118 = (uint32_t)(h_g_2);
-                uint32_t *t119 = (uint32_t *)t304;
-                *(uint32_t *)t304 = t118;
+                gs_ua_u32 *t119 = (gs_ua_u32 *)t304;
+                *(gs_ua_u32 *)t304 = t118;
                 t304 += 4;
                 b_g_3.len++;
                 if ((uint8_t)((uint64_t)((uint64_t)(gs_shr_u64((uint64_t)(h_g_2), (int64_t)(32)))) > (uint64_t)(0))) {
                     uint32_t t120 = (uint32_t)(gs_shr_u64((uint64_t)(h_g_2), (int64_t)(32)));
-                    uint32_t *t121 = (uint32_t *)t304;
-                    *(uint32_t *)t304 = t120;
+                    gs_ua_u32 *t121 = (gs_ua_u32 *)t304;
+                    *(gs_ua_u32 *)t304 = t120;
                     t304 += 4;
                     b_g_3.len++;
                 }
@@ -4665,15 +4688,15 @@ static double json_round_exact_g4(void *text_g_data, int64_t text_g_len, int64_t
                             {
                                 uint64_t carry_g_10 = 0;
                                 for (int64_t t126 = 0; t126 < ((a_g_4.len)); t126++) {
-                                    uint32_t * limb_g_10 = &(*(uint32_t *)(((a_g_4.base)) + t126 * 4));
+                                    gs_ua_u32 * limb_g_10 = &(*(gs_ua_u32 *)(((a_g_4.base)) + t126 * 4));
                                     uint64_t t_g_10 = gs_add_u64((uint64_t)(gs_mul_u64((uint64_t)((uint64_t)((*limb_g_10))), 1220703125)), carry_g_10);
                                     (*limb_g_10) = (uint32_t)(t_g_10);
                                     carry_g_10 = gs_shr_u64((uint64_t)(t_g_10), (int64_t)(32));
                                 }
                                 if ((uint8_t)((uint64_t)((uint64_t)(carry_g_10)) > (uint64_t)(0))) {
                                     uint32_t t129 = (uint32_t)(carry_g_10);
-                                    uint32_t *t130 = (uint32_t *)t303;
-                                    *(uint32_t *)t303 = t129;
+                                    gs_ua_u32 *t130 = (gs_ua_u32 *)t303;
+                                    *(gs_ua_u32 *)t303 = t129;
                                     t303 += 4;
                                     a_g_4.len++;
                                 }
@@ -4690,15 +4713,15 @@ static double json_round_exact_g4(void *text_g_data, int64_t text_g_len, int64_t
                         {
                             uint64_t carry_g_11 = 0;
                             for (int64_t t135 = 0; t135 < ((a_g_4.len)); t135++) {
-                                uint32_t * limb_g_11 = &(*(uint32_t *)(((a_g_4.base)) + t135 * 4));
+                                gs_ua_u32 * limb_g_11 = &(*(gs_ua_u32 *)(((a_g_4.base)) + t135 * 4));
                                 uint64_t t_g_11 = gs_add_u64((uint64_t)(gs_mul_u64((uint64_t)((uint64_t)((*limb_g_11))), m_g_9)), carry_g_11);
                                 (*limb_g_11) = (uint32_t)(t_g_11);
                                 carry_g_11 = gs_shr_u64((uint64_t)(t_g_11), (int64_t)(32));
                             }
                             if ((uint8_t)((uint64_t)((uint64_t)(carry_g_11)) > (uint64_t)(0))) {
                                 uint32_t t138 = (uint32_t)(carry_g_11);
-                                uint32_t *t139 = (uint32_t *)t303;
-                                *(uint32_t *)t303 = t138;
+                                gs_ua_u32 *t139 = (gs_ua_u32 *)t303;
+                                *(gs_ua_u32 *)t303 = t138;
                                 t303 += 4;
                                 a_g_4.len++;
                             }
@@ -4713,15 +4736,15 @@ static double json_round_exact_g4(void *text_g_data, int64_t text_g_len, int64_t
                             {
                                 uint64_t carry_g_12 = 0;
                                 for (int64_t t144 = 0; t144 < ((b_g_3.len)); t144++) {
-                                    uint32_t * limb_g_12 = &(*(uint32_t *)(((b_g_3.base)) + t144 * 4));
+                                    gs_ua_u32 * limb_g_12 = &(*(gs_ua_u32 *)(((b_g_3.base)) + t144 * 4));
                                     uint64_t t_g_12 = gs_add_u64((uint64_t)(gs_mul_u64((uint64_t)((uint64_t)((*limb_g_12))), 1220703125)), carry_g_12);
                                     (*limb_g_12) = (uint32_t)(t_g_12);
                                     carry_g_12 = gs_shr_u64((uint64_t)(t_g_12), (int64_t)(32));
                                 }
                                 if ((uint8_t)((uint64_t)((uint64_t)(carry_g_12)) > (uint64_t)(0))) {
                                     uint32_t t147 = (uint32_t)(carry_g_12);
-                                    uint32_t *t148 = (uint32_t *)t304;
-                                    *(uint32_t *)t304 = t147;
+                                    gs_ua_u32 *t148 = (gs_ua_u32 *)t304;
+                                    *(gs_ua_u32 *)t304 = t147;
                                     t304 += 4;
                                     b_g_3.len++;
                                 }
@@ -4738,15 +4761,15 @@ static double json_round_exact_g4(void *text_g_data, int64_t text_g_len, int64_t
                         {
                             uint64_t carry_g_13 = 0;
                             for (int64_t t153 = 0; t153 < ((b_g_3.len)); t153++) {
-                                uint32_t * limb_g_13 = &(*(uint32_t *)(((b_g_3.base)) + t153 * 4));
+                                gs_ua_u32 * limb_g_13 = &(*(gs_ua_u32 *)(((b_g_3.base)) + t153 * 4));
                                 uint64_t t_g_13 = gs_add_u64((uint64_t)(gs_mul_u64((uint64_t)((uint64_t)((*limb_g_13))), m_g_11)), carry_g_13);
                                 (*limb_g_13) = (uint32_t)(t_g_13);
                                 carry_g_13 = gs_shr_u64((uint64_t)(t_g_13), (int64_t)(32));
                             }
                             if ((uint8_t)((uint64_t)((uint64_t)(carry_g_13)) > (uint64_t)(0))) {
                                 uint32_t t156 = (uint32_t)(carry_g_13);
-                                uint32_t *t157 = (uint32_t *)t304;
-                                *(uint32_t *)t304 = t156;
+                                gs_ua_u32 *t157 = (gs_ua_u32 *)t304;
+                                *(gs_ua_u32 *)t304 = t156;
                                 t304 += 4;
                                 b_g_3.len++;
                             }
@@ -4762,15 +4785,15 @@ static double json_round_exact_g4(void *text_g_data, int64_t text_g_len, int64_t
                             {
                                 uint64_t carry_g_14 = 0;
                                 for (int64_t t162 = 0; t162 < ((a_g_4.len)); t162++) {
-                                    uint32_t * limb_g_14 = &(*(uint32_t *)(((a_g_4.base)) + t162 * 4));
+                                    gs_ua_u32 * limb_g_14 = &(*(gs_ua_u32 *)(((a_g_4.base)) + t162 * 4));
                                     uint64_t t_g_14 = gs_add_u64((uint64_t)(gs_mul_u64((uint64_t)((uint64_t)((*limb_g_14))), 2147483648LL)), carry_g_14);
                                     (*limb_g_14) = (uint32_t)(t_g_14);
                                     carry_g_14 = gs_shr_u64((uint64_t)(t_g_14), (int64_t)(32));
                                 }
                                 if ((uint8_t)((uint64_t)((uint64_t)(carry_g_14)) > (uint64_t)(0))) {
                                     uint32_t t165 = (uint32_t)(carry_g_14);
-                                    uint32_t *t166 = (uint32_t *)t303;
-                                    *(uint32_t *)t303 = t165;
+                                    gs_ua_u32 *t166 = (gs_ua_u32 *)t303;
+                                    *(gs_ua_u32 *)t303 = t165;
                                     t303 += 4;
                                     a_g_4.len++;
                                 }
@@ -4782,15 +4805,15 @@ static double json_round_exact_g4(void *text_g_data, int64_t text_g_len, int64_t
                         {
                             uint64_t carry_g_15 = 0;
                             for (int64_t t168 = 0; t168 < ((a_g_4.len)); t168++) {
-                                uint32_t * limb_g_15 = &(*(uint32_t *)(((a_g_4.base)) + t168 * 4));
+                                gs_ua_u32 * limb_g_15 = &(*(gs_ua_u32 *)(((a_g_4.base)) + t168 * 4));
                                 uint64_t t_g_15 = gs_add_u64((uint64_t)(gs_mul_u64((uint64_t)((uint64_t)((*limb_g_15))), m_g_12)), carry_g_15);
                                 (*limb_g_15) = (uint32_t)(t_g_15);
                                 carry_g_15 = gs_shr_u64((uint64_t)(t_g_15), (int64_t)(32));
                             }
                             if ((uint8_t)((uint64_t)((uint64_t)(carry_g_15)) > (uint64_t)(0))) {
                                 uint32_t t171 = (uint32_t)(carry_g_15);
-                                uint32_t *t172 = (uint32_t *)t303;
-                                *(uint32_t *)t303 = t171;
+                                gs_ua_u32 *t172 = (gs_ua_u32 *)t303;
+                                *(gs_ua_u32 *)t303 = t171;
                                 t303 += 4;
                                 a_g_4.len++;
                             }
@@ -4805,15 +4828,15 @@ static double json_round_exact_g4(void *text_g_data, int64_t text_g_len, int64_t
                             {
                                 uint64_t carry_g_16 = 0;
                                 for (int64_t t177 = 0; t177 < ((b_g_3.len)); t177++) {
-                                    uint32_t * limb_g_16 = &(*(uint32_t *)(((b_g_3.base)) + t177 * 4));
+                                    gs_ua_u32 * limb_g_16 = &(*(gs_ua_u32 *)(((b_g_3.base)) + t177 * 4));
                                     uint64_t t_g_16 = gs_add_u64((uint64_t)(gs_mul_u64((uint64_t)((uint64_t)((*limb_g_16))), 2147483648LL)), carry_g_16);
                                     (*limb_g_16) = (uint32_t)(t_g_16);
                                     carry_g_16 = gs_shr_u64((uint64_t)(t_g_16), (int64_t)(32));
                                 }
                                 if ((uint8_t)((uint64_t)((uint64_t)(carry_g_16)) > (uint64_t)(0))) {
                                     uint32_t t180 = (uint32_t)(carry_g_16);
-                                    uint32_t *t181 = (uint32_t *)t304;
-                                    *(uint32_t *)t304 = t180;
+                                    gs_ua_u32 *t181 = (gs_ua_u32 *)t304;
+                                    *(gs_ua_u32 *)t304 = t180;
                                     t304 += 4;
                                     b_g_3.len++;
                                 }
@@ -4825,24 +4848,24 @@ static double json_round_exact_g4(void *text_g_data, int64_t text_g_len, int64_t
                         {
                             uint64_t carry_g_17 = 0;
                             for (int64_t t183 = 0; t183 < ((b_g_3.len)); t183++) {
-                                uint32_t * limb_g_17 = &(*(uint32_t *)(((b_g_3.base)) + t183 * 4));
+                                gs_ua_u32 * limb_g_17 = &(*(gs_ua_u32 *)(((b_g_3.base)) + t183 * 4));
                                 uint64_t t_g_17 = gs_add_u64((uint64_t)(gs_mul_u64((uint64_t)((uint64_t)((*limb_g_17))), m_g_13)), carry_g_17);
                                 (*limb_g_17) = (uint32_t)(t_g_17);
                                 carry_g_17 = gs_shr_u64((uint64_t)(t_g_17), (int64_t)(32));
                             }
                             if ((uint8_t)((uint64_t)((uint64_t)(carry_g_17)) > (uint64_t)(0))) {
                                 uint32_t t186 = (uint32_t)(carry_g_17);
-                                uint32_t *t187 = (uint32_t *)t304;
-                                *(uint32_t *)t304 = t186;
+                                gs_ua_u32 *t187 = (gs_ua_u32 *)t304;
+                                *(gs_ua_u32 *)t304 = t186;
                                 t304 += 4;
                                 b_g_3.len++;
                             }
                         }
                     }
                 }
-                t188.data = (uint32_t *)((a_g_4.base)); t188.len = (a_g_4.len);
+                t188.data = (gs_ua_u32 *)((a_g_4.base)); t188.len = (a_g_4.len);
                 a_g_5 = t188;
-                t189.data = (uint32_t *)((b_g_3.base)); t189.len = (b_g_3.len);
+                t189.data = (gs_ua_u32 *)((b_g_3.base)); t189.len = (b_g_3.len);
                 b_g_4 = t189;
                 {
                     if ((uint8_t)(!((int64_t)((int64_t)((a_g_5.len))) == (int64_t)((b_g_4.len))))) {
@@ -4859,14 +4882,14 @@ static double json_round_exact_g4(void *text_g_data, int64_t text_g_len, int64_t
                     for (int64_t t192 = 0; t192 < t191; t192++) {
                         i_g_6 = (int64_t)(t191 - 1 - t192);
                         int64_t t195 = i_g_6;
-                        uint32_t *t196 = a_g_5.data;
+                        gs_ua_u32 *t196 = a_g_5.data;
                         int64_t t197 = i_g_6;
-                        uint32_t *t198 = b_g_4.data;
+                        gs_ua_u32 *t198 = b_g_4.data;
                         if ((uint8_t)(!((uint32_t)((uint32_t)(t196[t195])) == (uint32_t)(t198[t197])))) {
                             int64_t t199 = i_g_6;
-                            uint32_t *t200 = a_g_5.data;
+                            gs_ua_u32 *t200 = a_g_5.data;
                             int64_t t201 = i_g_6;
-                            uint32_t *t202 = b_g_4.data;
+                            gs_ua_u32 *t202 = b_g_4.data;
                             if ((uint8_t)((uint32_t)((uint32_t)(t200[t199])) < (uint32_t)(t202[t201]))) {
                                 down_g = -1;
                             } else {
@@ -4890,7 +4913,7 @@ static double json_round_exact_g4(void *text_g_data, int64_t text_g_len, int64_t
         goto L203;
         L113:;
         {
-            t204.data = (uint32_t *)((digits_g.base)); t204.len = (digits_g.len);
+            t204.data = (gs_ua_u32 *)((digits_g.base)); t204.len = (digits_g.len);
             digits_g_4 = t204;
             int64_t e10_g_4 = e10_g;
             uint64_t h_g_3 = gs_sub_u64((uint64_t)(gs_mul_u64((uint64_t)(2), m_g)), 1);
@@ -4906,14 +4929,14 @@ static double json_round_exact_g4(void *text_g_data, int64_t text_g_len, int64_t
                 b_g_5.base = t304; b_g_5.len = 0;
                 b_g_5.len = 0;
                 uint32_t t208 = (uint32_t)(h_g_3);
-                uint32_t *t209 = (uint32_t *)t304;
-                *(uint32_t *)t304 = t208;
+                gs_ua_u32 *t209 = (gs_ua_u32 *)t304;
+                *(gs_ua_u32 *)t304 = t208;
                 t304 += 4;
                 b_g_5.len++;
                 if ((uint8_t)((uint64_t)((uint64_t)(gs_shr_u64((uint64_t)(h_g_3), (int64_t)(32)))) > (uint64_t)(0))) {
                     uint32_t t210 = (uint32_t)(gs_shr_u64((uint64_t)(h_g_3), (int64_t)(32)));
-                    uint32_t *t211 = (uint32_t *)t304;
-                    *(uint32_t *)t304 = t210;
+                    gs_ua_u32 *t211 = (gs_ua_u32 *)t304;
+                    *(gs_ua_u32 *)t304 = t210;
                     t304 += 4;
                     b_g_5.len++;
                 }
@@ -4926,15 +4949,15 @@ static double json_round_exact_g4(void *text_g_data, int64_t text_g_len, int64_t
                             {
                                 uint64_t carry_g_18 = 0;
                                 for (int64_t t216 = 0; t216 < ((a_g_6.len)); t216++) {
-                                    uint32_t * limb_g_18 = &(*(uint32_t *)(((a_g_6.base)) + t216 * 4));
+                                    gs_ua_u32 * limb_g_18 = &(*(gs_ua_u32 *)(((a_g_6.base)) + t216 * 4));
                                     uint64_t t_g_18 = gs_add_u64((uint64_t)(gs_mul_u64((uint64_t)((uint64_t)((*limb_g_18))), 1220703125)), carry_g_18);
                                     (*limb_g_18) = (uint32_t)(t_g_18);
                                     carry_g_18 = gs_shr_u64((uint64_t)(t_g_18), (int64_t)(32));
                                 }
                                 if ((uint8_t)((uint64_t)((uint64_t)(carry_g_18)) > (uint64_t)(0))) {
                                     uint32_t t219 = (uint32_t)(carry_g_18);
-                                    uint32_t *t220 = (uint32_t *)t303;
-                                    *(uint32_t *)t303 = t219;
+                                    gs_ua_u32 *t220 = (gs_ua_u32 *)t303;
+                                    *(gs_ua_u32 *)t303 = t219;
                                     t303 += 4;
                                     a_g_6.len++;
                                 }
@@ -4951,15 +4974,15 @@ static double json_round_exact_g4(void *text_g_data, int64_t text_g_len, int64_t
                         {
                             uint64_t carry_g_19 = 0;
                             for (int64_t t225 = 0; t225 < ((a_g_6.len)); t225++) {
-                                uint32_t * limb_g_19 = &(*(uint32_t *)(((a_g_6.base)) + t225 * 4));
+                                gs_ua_u32 * limb_g_19 = &(*(gs_ua_u32 *)(((a_g_6.base)) + t225 * 4));
                                 uint64_t t_g_19 = gs_add_u64((uint64_t)(gs_mul_u64((uint64_t)((uint64_t)((*limb_g_19))), m_g_15)), carry_g_19);
                                 (*limb_g_19) = (uint32_t)(t_g_19);
                                 carry_g_19 = gs_shr_u64((uint64_t)(t_g_19), (int64_t)(32));
                             }
                             if ((uint8_t)((uint64_t)((uint64_t)(carry_g_19)) > (uint64_t)(0))) {
                                 uint32_t t228 = (uint32_t)(carry_g_19);
-                                uint32_t *t229 = (uint32_t *)t303;
-                                *(uint32_t *)t303 = t228;
+                                gs_ua_u32 *t229 = (gs_ua_u32 *)t303;
+                                *(gs_ua_u32 *)t303 = t228;
                                 t303 += 4;
                                 a_g_6.len++;
                             }
@@ -4974,15 +4997,15 @@ static double json_round_exact_g4(void *text_g_data, int64_t text_g_len, int64_t
                             {
                                 uint64_t carry_g_20 = 0;
                                 for (int64_t t234 = 0; t234 < ((b_g_5.len)); t234++) {
-                                    uint32_t * limb_g_20 = &(*(uint32_t *)(((b_g_5.base)) + t234 * 4));
+                                    gs_ua_u32 * limb_g_20 = &(*(gs_ua_u32 *)(((b_g_5.base)) + t234 * 4));
                                     uint64_t t_g_20 = gs_add_u64((uint64_t)(gs_mul_u64((uint64_t)((uint64_t)((*limb_g_20))), 1220703125)), carry_g_20);
                                     (*limb_g_20) = (uint32_t)(t_g_20);
                                     carry_g_20 = gs_shr_u64((uint64_t)(t_g_20), (int64_t)(32));
                                 }
                                 if ((uint8_t)((uint64_t)((uint64_t)(carry_g_20)) > (uint64_t)(0))) {
                                     uint32_t t237 = (uint32_t)(carry_g_20);
-                                    uint32_t *t238 = (uint32_t *)t304;
-                                    *(uint32_t *)t304 = t237;
+                                    gs_ua_u32 *t238 = (gs_ua_u32 *)t304;
+                                    *(gs_ua_u32 *)t304 = t237;
                                     t304 += 4;
                                     b_g_5.len++;
                                 }
@@ -4999,15 +5022,15 @@ static double json_round_exact_g4(void *text_g_data, int64_t text_g_len, int64_t
                         {
                             uint64_t carry_g_21 = 0;
                             for (int64_t t243 = 0; t243 < ((b_g_5.len)); t243++) {
-                                uint32_t * limb_g_21 = &(*(uint32_t *)(((b_g_5.base)) + t243 * 4));
+                                gs_ua_u32 * limb_g_21 = &(*(gs_ua_u32 *)(((b_g_5.base)) + t243 * 4));
                                 uint64_t t_g_21 = gs_add_u64((uint64_t)(gs_mul_u64((uint64_t)((uint64_t)((*limb_g_21))), m_g_17)), carry_g_21);
                                 (*limb_g_21) = (uint32_t)(t_g_21);
                                 carry_g_21 = gs_shr_u64((uint64_t)(t_g_21), (int64_t)(32));
                             }
                             if ((uint8_t)((uint64_t)((uint64_t)(carry_g_21)) > (uint64_t)(0))) {
                                 uint32_t t246 = (uint32_t)(carry_g_21);
-                                uint32_t *t247 = (uint32_t *)t304;
-                                *(uint32_t *)t304 = t246;
+                                gs_ua_u32 *t247 = (gs_ua_u32 *)t304;
+                                *(gs_ua_u32 *)t304 = t246;
                                 t304 += 4;
                                 b_g_5.len++;
                             }
@@ -5023,15 +5046,15 @@ static double json_round_exact_g4(void *text_g_data, int64_t text_g_len, int64_t
                             {
                                 uint64_t carry_g_22 = 0;
                                 for (int64_t t252 = 0; t252 < ((a_g_6.len)); t252++) {
-                                    uint32_t * limb_g_22 = &(*(uint32_t *)(((a_g_6.base)) + t252 * 4));
+                                    gs_ua_u32 * limb_g_22 = &(*(gs_ua_u32 *)(((a_g_6.base)) + t252 * 4));
                                     uint64_t t_g_22 = gs_add_u64((uint64_t)(gs_mul_u64((uint64_t)((uint64_t)((*limb_g_22))), 2147483648LL)), carry_g_22);
                                     (*limb_g_22) = (uint32_t)(t_g_22);
                                     carry_g_22 = gs_shr_u64((uint64_t)(t_g_22), (int64_t)(32));
                                 }
                                 if ((uint8_t)((uint64_t)((uint64_t)(carry_g_22)) > (uint64_t)(0))) {
                                     uint32_t t255 = (uint32_t)(carry_g_22);
-                                    uint32_t *t256 = (uint32_t *)t303;
-                                    *(uint32_t *)t303 = t255;
+                                    gs_ua_u32 *t256 = (gs_ua_u32 *)t303;
+                                    *(gs_ua_u32 *)t303 = t255;
                                     t303 += 4;
                                     a_g_6.len++;
                                 }
@@ -5043,15 +5066,15 @@ static double json_round_exact_g4(void *text_g_data, int64_t text_g_len, int64_t
                         {
                             uint64_t carry_g_23 = 0;
                             for (int64_t t258 = 0; t258 < ((a_g_6.len)); t258++) {
-                                uint32_t * limb_g_23 = &(*(uint32_t *)(((a_g_6.base)) + t258 * 4));
+                                gs_ua_u32 * limb_g_23 = &(*(gs_ua_u32 *)(((a_g_6.base)) + t258 * 4));
                                 uint64_t t_g_23 = gs_add_u64((uint64_t)(gs_mul_u64((uint64_t)((uint64_t)((*limb_g_23))), m_g_18)), carry_g_23);
                                 (*limb_g_23) = (uint32_t)(t_g_23);
                                 carry_g_23 = gs_shr_u64((uint64_t)(t_g_23), (int64_t)(32));
                             }
                             if ((uint8_t)((uint64_t)((uint64_t)(carry_g_23)) > (uint64_t)(0))) {
                                 uint32_t t261 = (uint32_t)(carry_g_23);
-                                uint32_t *t262 = (uint32_t *)t303;
-                                *(uint32_t *)t303 = t261;
+                                gs_ua_u32 *t262 = (gs_ua_u32 *)t303;
+                                *(gs_ua_u32 *)t303 = t261;
                                 t303 += 4;
                                 a_g_6.len++;
                             }
@@ -5066,15 +5089,15 @@ static double json_round_exact_g4(void *text_g_data, int64_t text_g_len, int64_t
                             {
                                 uint64_t carry_g_24 = 0;
                                 for (int64_t t267 = 0; t267 < ((b_g_5.len)); t267++) {
-                                    uint32_t * limb_g_24 = &(*(uint32_t *)(((b_g_5.base)) + t267 * 4));
+                                    gs_ua_u32 * limb_g_24 = &(*(gs_ua_u32 *)(((b_g_5.base)) + t267 * 4));
                                     uint64_t t_g_24 = gs_add_u64((uint64_t)(gs_mul_u64((uint64_t)((uint64_t)((*limb_g_24))), 2147483648LL)), carry_g_24);
                                     (*limb_g_24) = (uint32_t)(t_g_24);
                                     carry_g_24 = gs_shr_u64((uint64_t)(t_g_24), (int64_t)(32));
                                 }
                                 if ((uint8_t)((uint64_t)((uint64_t)(carry_g_24)) > (uint64_t)(0))) {
                                     uint32_t t270 = (uint32_t)(carry_g_24);
-                                    uint32_t *t271 = (uint32_t *)t304;
-                                    *(uint32_t *)t304 = t270;
+                                    gs_ua_u32 *t271 = (gs_ua_u32 *)t304;
+                                    *(gs_ua_u32 *)t304 = t270;
                                     t304 += 4;
                                     b_g_5.len++;
                                 }
@@ -5086,24 +5109,24 @@ static double json_round_exact_g4(void *text_g_data, int64_t text_g_len, int64_t
                         {
                             uint64_t carry_g_25 = 0;
                             for (int64_t t273 = 0; t273 < ((b_g_5.len)); t273++) {
-                                uint32_t * limb_g_25 = &(*(uint32_t *)(((b_g_5.base)) + t273 * 4));
+                                gs_ua_u32 * limb_g_25 = &(*(gs_ua_u32 *)(((b_g_5.base)) + t273 * 4));
                                 uint64_t t_g_25 = gs_add_u64((uint64_t)(gs_mul_u64((uint64_t)((uint64_t)((*limb_g_25))), m_g_19)), carry_g_25);
                                 (*limb_g_25) = (uint32_t)(t_g_25);
                                 carry_g_25 = gs_shr_u64((uint64_t)(t_g_25), (int64_t)(32));
                             }
                             if ((uint8_t)((uint64_t)((uint64_t)(carry_g_25)) > (uint64_t)(0))) {
                                 uint32_t t276 = (uint32_t)(carry_g_25);
-                                uint32_t *t277 = (uint32_t *)t304;
-                                *(uint32_t *)t304 = t276;
+                                gs_ua_u32 *t277 = (gs_ua_u32 *)t304;
+                                *(gs_ua_u32 *)t304 = t276;
                                 t304 += 4;
                                 b_g_5.len++;
                             }
                         }
                     }
                 }
-                t278.data = (uint32_t *)((a_g_6.base)); t278.len = (a_g_6.len);
+                t278.data = (gs_ua_u32 *)((a_g_6.base)); t278.len = (a_g_6.len);
                 a_g_7 = t278;
-                t279.data = (uint32_t *)((b_g_5.base)); t279.len = (b_g_5.len);
+                t279.data = (gs_ua_u32 *)((b_g_5.base)); t279.len = (b_g_5.len);
                 b_g_6 = t279;
                 {
                     if ((uint8_t)(!((int64_t)((int64_t)((a_g_7.len))) == (int64_t)((b_g_6.len))))) {
@@ -5120,14 +5143,14 @@ static double json_round_exact_g4(void *text_g_data, int64_t text_g_len, int64_t
                     for (int64_t t282 = 0; t282 < t281; t282++) {
                         i_g_9 = (int64_t)(t281 - 1 - t282);
                         int64_t t285 = i_g_9;
-                        uint32_t *t286 = a_g_7.data;
+                        gs_ua_u32 *t286 = a_g_7.data;
                         int64_t t287 = i_g_9;
-                        uint32_t *t288 = b_g_6.data;
+                        gs_ua_u32 *t288 = b_g_6.data;
                         if ((uint8_t)(!((uint32_t)((uint32_t)(t286[t285])) == (uint32_t)(t288[t287])))) {
                             int64_t t289 = i_g_9;
-                            uint32_t *t290 = a_g_7.data;
+                            gs_ua_u32 *t290 = a_g_7.data;
                             int64_t t291 = i_g_9;
-                            uint32_t *t292 = b_g_6.data;
+                            gs_ua_u32 *t292 = b_g_6.data;
                             if ((uint8_t)((uint32_t)((uint32_t)(t290[t289])) < (uint32_t)(t292[t291]))) {
                                 down_g = -1;
                             } else {
@@ -5324,8 +5347,8 @@ static void render_g(uint8_t * n_g, gs_rhdr *out_g_2_hdr, gs_stack *out_g_2_stk,
     } break;
     case Json_g_Arr_g_k: {
         uint8_t *a_g = (t0 + 1);
-        int64_t t12 = (int64_t)(int32_t)(*(uint32_t *)(a_g));
-        uint8_t *t13 = t12 ? ((uint8_t *)&(*(uint32_t *)(a_g))) + t12 : NULL;
+        int64_t t12 = (int64_t)(int32_t)(*(gs_ua_u32 *)(a_g));
+        uint8_t *t13 = t12 ? ((uint8_t *)&(*(gs_ua_u32 *)(a_g))) + t12 : NULL;
         out_g_2.stk->top = t16;
         out_g_2.hdr->len = t17;
         render_children_g(t13, 0, out_g_2.hdr, out_g_2.stk, indent_g, 91, 93, gs_sp + 0);
@@ -5334,8 +5357,8 @@ static void render_g(uint8_t * n_g, gs_rhdr *out_g_2_hdr, gs_stack *out_g_2_stk,
     } break;
     case Json_g_Obj_g_k: {
         uint8_t *o_g = (t0 + 1);
-        int64_t t14 = (int64_t)(int32_t)(*(uint32_t *)(o_g));
-        uint8_t *t15 = t14 ? ((uint8_t *)&(*(uint32_t *)(o_g))) + t14 : NULL;
+        int64_t t14 = (int64_t)(int32_t)(*(gs_ua_u32 *)(o_g));
+        uint8_t *t15 = t14 ? ((uint8_t *)&(*(gs_ua_u32 *)(o_g))) + t14 : NULL;
         out_g_2.stk->top = t16;
         out_g_2.hdr->len = t17;
         render_children_g(t15, 1, out_g_2.hdr, out_g_2.stk, indent_g, 123, 125, gs_sp + 0);
@@ -5741,9 +5764,9 @@ static void render_children_g(uint8_t * first_g, uint8_t keyed_g, gs_rhdr *out_g
         render_g(t12, t13.hdr, t13.stk, t14, gs_sp + 0);
         t21 = out_g_2.stk->top;
         t22 = out_g_2.hdr->len;
-        uint8_t * *t15 = &(c_g);
-        int64_t t16 = (int64_t)(int32_t)(*(uint32_t *)(c_g));
-        uint8_t *t17 = t16 ? ((uint8_t *)&(*(uint32_t *)(c_g))) + t16 : NULL;
+        gs_ua_uint8_tp *t15 = &(c_g);
+        int64_t t16 = (int64_t)(int32_t)(*(gs_ua_u32 *)(c_g));
+        uint8_t *t17 = t16 ? ((uint8_t *)&(*(gs_ua_u32 *)(c_g))) + t16 : NULL;
         (*t15) = t17;
         i_g = gs_add_i64(i_g, 1, gs_file0, 310);
     }
