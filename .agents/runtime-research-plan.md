@@ -9,8 +9,10 @@ itself is changed to embed in R. Use zugojson as the test harness.
 zugojson. Pieces 1–3 change a fork of Goose (`pedrobtz/goose`), and
 zugojson pins that fork on research branches. Each piece ends with
 zugojson's suite green, `R CMD check` clean and a benchmark compared
-against the baseline. A port of the YAML evaluation (zugoyaml) follows as a
-second harness. It gets its own plan.
+against the baseline. zudiff is the second harness (Task 7): a piece is
+proven when it reaches go in both packages. Piece 3 is decided in zudiff
+as well, because only zudiff has the Windows runtime and the hot stack
+loops that piece is about.
 
 **Fork first, upstream after.** Each idea is built and measured in the
 fork before anything is proposed upstream. The fork is first brought in
@@ -343,7 +345,7 @@ Added 2026-10-31, before any piece is built (see Fork workflow).
   - If it is clean, `cec434a` is enough. Go to Step 3.
   - If not, regenerate from the rebased `aligned-access` and run again.
     Record which sites only the fork fixes.
-- [ ] **Step 3:** Answer the maintainer on aardappel/goose#125 with the
+- [x] **Step 3:** Answer the maintainer on aardappel/goose#125 with the
   result: close it if upstream is enough, or rework it to the remaining
   sites. Ask the user before posting.
 - [x] **Step 4:** Move `main` to an upstream pin if Step 2 allows, and to
@@ -404,8 +406,11 @@ Added 2026-10-31, before any piece is built (see Fork workflow).
 - `regenerate.sh --verify` on Linux is left to CI's `goose.yaml`, which
   runs on `ubuntu-latest` while the C was generated on macOS. With
   `2c7d8d5` in the pin, it should now agree.
-- Step 3 is not done. The reply to aardappel/goose#125 is drafted and
-  waits for the user.
+- Step 3: aardappel/goose#125 was closed on 2026-10-31, with a comment
+  giving the UBSan table and reporting the `--header` regression with a
+  reproducer. The fix (`export-header-types`) was offered as a separate
+  pull request, if the maintainer wants it. Until he answers, it stays on
+  the fork.
 - `hosted-runtime` now points at `b362b5a5`, locally. It is pushed when
   Task 4 has commits on it.
 
@@ -602,26 +607,41 @@ test_that("a small stack overflows into a runtime error", {
   - add a `NEWS.md` entry.
 
   Run the r-actions Windows leg. Expected: green.
-- [ ] **Step 5:** Commit: `Replace guard pages with checked stack growth`,
+- [ ] **Step 5 (go only):** Run the same piece in zudiff, through Task 7.
+  Piece 3 reaches go only if zudiff also passes:
+  - design §10's benchmark rows still met, and no `tools/run-benchmarks`
+    row more than 5% slower than zudiff on Piece 2. The Myers search and
+    the 10 MB raw diff are the hot stack loops;
+  - its Windows half deleted: the vectored exception handler, the thread
+    redirect and the console control handler. The r-actions Windows legs
+    stay green.
+- [ ] **Step 6:** Commit: `Replace guard pages with checked stack growth`,
   or `Record why checked growth stops here`.
 
-### Task 7: zugoyaml harness (separate repository, its own plan)
+### Task 7: zudiff as the second harness
 
-When Task 6 starts, write that plan from this outline:
-- Port `goose-evaluations/yaml/goose/yaml.goose` (593 lines, Apache-2.0)
-  to exports:
-  - parse plus canonical JSON out;
-  - the node and byte counts;
-  - a nesting limit like zugojson's 512.
-- Use zugojson's `goose_r_host.c` from the furthest piece that reached go.
-- Use the `yaml` package as the oracle, on the YAML subset the port
-  supports. Anchors, aliases and tags must give a classed error.
-- Run the four-way benchmark in one process, on the evaluation's
-  Kubernetes inputs:
-  - `twin.c` built into the package behind a test hook;
-  - Goose on today's R runtime;
-  - Goose on the furthest research runtime;
-  - the `yaml` package.
+Decided 2026-10-31. It replaces the zugoyaml port first planned here.
+zudiff already exists, and it differs from zugojson more than a second
+parser would. It has:
+- the Windows half of the runtime and Ctrl-C;
+- large search arrays and an explicit task stack on the data stacks;
+- property tests, an O(NM) reference, exhaustive sweeps, and git and GNU
+  `patch` as oracles.
+
+Rules:
+- zudiff is on its way to CRAN, and other packages will import it.
+  Research pins stay on zudiff branches until its v0.1.0 is released.
+  Its `main` takes only what has reached go in both packages.
+- zudiff first takes the same base as this package: the Task 3a pin and
+  the `REMOTE` plumbing (pedrobtz/zudiff, branch `goose-pin-fork`). Then
+  layer 1 (pedrobtz/zudiff#22, Piece 0 and `R_CheckUserInterrupt()`), so
+  its runtime matches this package's before a piece is compared.
+- After each piece reaches go here, port its host file to zudiff on a
+  branch, and run zudiff's full suite with `ZUDIFF_EXHAUSTIVE=true`,
+  `tools/run-benchmarks`, `tools/wine/run` and the r-actions Windows legs.
+  Record the results in this file's `notes.md` with zudiff's commit.
+- pedrobtz/zudiff#23 tracks moving zudiff's `main` once both harnesses
+  agree.
 
 ### Task 8: Write-up and upstream proposal
 
