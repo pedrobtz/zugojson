@@ -76,8 +76,10 @@ The pieces and research questions:
   `runtime-research/<task-slug>`, branched from `main` or from the
   previous task's branch.
 - `main` keeps an upstream pin, and a fork pin appears only on research
-  branches. One exception: since #8, `main` pins the fork for unaligned
-  packed access, until Task 3a moves it back. A pull request that changes the pin, the runtime or
+  branches. One exception: `main` pins the fork, first for unaligned
+  packed access (#8), and since Task 3a for the `--header` fix on top of
+  upstream `master`. It goes back to upstream once a release contains
+  that fix. A pull request that changes the pin, the runtime or
   `tools/regenerate.sh` must say so.
 - Never edit generated files: `src/zugojson_goose.{c,h}`,
   `src/goose_version.h`, and from Task 4 on `src/goose_runtime.c`. Change
@@ -332,10 +334,10 @@ Added 2026-10-31, before any piece is built (see Fork workflow).
 - zugojson: `tools/goose/PIN`, `tools/goose/REMOTE` and the generated files,
   regenerated.
 
-- [ ] **Step 1:** Fetch upstream and rebase `aligned-access` on `master`.
+- [x] **Step 1:** Fetch upstream and rebase `aligned-access` on `master`.
   Drop every change that `cec434a` already makes. What is left, if
   anything, is what aardappel/goose#125 still adds.
-- [ ] **Step 2:** Regenerate zugojson from upstream `master` alone, with no
+- [x] **Step 2:** Regenerate zugojson from upstream `master` alone, with no
   fork commit. Run the suite under clang and gcc UBSan with the alignment
   check on, as CRAN does (the r-actions `sanitizers` legs).
   - If it is clean, `cec434a` is enough. Go to Step 3.
@@ -344,16 +346,68 @@ Added 2026-10-31, before any piece is built (see Fork workflow).
 - [ ] **Step 3:** Answer the maintainer on aardappel/goose#125 with the
   result: close it if upstream is enough, or rework it to the remaining
   sites. Ask the user before posting.
-- [ ] **Step 4:** Move `main` to an upstream pin if Step 2 allows, and to
+- [x] **Step 4:** Move `main` to an upstream pin if Step 2 allows, and to
   the rebased fork commit otherwise. The new pin includes `2c7d8d5`, so
   check that `tools/regenerate.sh --verify` passes on Linux as well as
   macOS. Check also that the runtime interface hash, the anchor ranges in
   `regenerate.sh` and the `__int128` patch still apply, and update them if
   not. Run the suite, `devtools::check()`, `check-symbols.sh` and
   `Rscript tools/bench.R align` (median of three runs).
-- [ ] **Step 5:** Create the piece branches from upstream `master` as of
+- [x] **Step 5:** Create the piece branches from upstream `master` as of
   this task. `hosted-runtime` exists only locally at `e76d5c9`; recreate
   it. Commit: `Pin Goose after aligning the fork with upstream`.
+
+**Deviations (2026-10-31).**
+- Steps 1 and 2 ran in the other order. Upstream alone was tested first,
+  because the rebase only matters if upstream is not enough.
+- Upstream `master` (`2ed1a63d`) does not build zugojson. `cec434a` made
+  the `--header` output name `gs_i64`, `gs_i32` and `GS_ALIGN1`, but only
+  `runtime.h` and the generated C declare them. Any C file that includes
+  only the header fails: `export fn add(a: i64, b: i64) -> i64` is enough
+  to show it. Goose's suite never compiled a `--header` output.
+- So the rebase keeps one fix, not the whole of aardappel/goose#125: fork
+  branch `export-header-types`, commit `b362b5a5`, which is upstream
+  `master` plus that commit. `ExportHeader()` declares the alignment types
+  under `#ifndef GS_ALIGN1`, and the new `test/export_header.py` builds a
+  host file that includes only the header. Goose's full suite passes on
+  macOS (x86-64), with GPU and platform-specific tests skipped. The fork's
+  `aligned-access` branch, which is #125's head, is left as it was.
+- UBSan, alignment check on, macOS clang, zugojson's tests:
+
+  | Goose | Reports |
+  | --- | --- |
+  | `e76d5c9`, before either fix | 14 sites |
+  | `f758863`, #125 on `e76d5c9` (the pin until now) | 0 |
+  | `2ed1a63d`, header patched by hand for the test | 0 |
+  | `b362b5a5`, the new pin | 0 |
+
+  `cec434a` covers every site the fork's commit covered. The gcc and clang
+  `sanitizers` legs in CI are the authority.
+- `main` therefore pins the fork, at `b362b5a5`, not upstream. It goes back
+  to upstream once a release contains the header fix.
+- Both `f758863` and upstream leave one clang warning, `-Walign-mismatch`,
+  where `std`'s `frexp` extern receives a 1-byte-aligned `i32` pointer. It
+  is not new, and it does not fail `R CMD check`.
+- Interface: the runtime hash changed (`e9a5f91e57ed` to `05adb1799811`).
+  The one new `GS_API` function, `gs_stack_overflow`, is declared but not
+  referenced. An `-O0` build has no unresolved `gs_` symbol, so
+  `goose_r_runtime.c` needs no change. The anchor ranges and the `__int128`
+  patch apply unchanged.
+- `devtools::check()`: 0 errors, 0 warnings. One NOTE, `.git` as a hidden
+  file, comes from running in a git worktree and does not occur in a plain
+  checkout. `check-symbols.sh` is clean, and `devtools::test(shuffle =
+  TRUE)` passes.
+- Benchmark: three runs each of `f758863` and the new pin, interleaved
+  (`bench-f758863-run*.csv`, `bench-align-run*.csv`). Every row is within
+  ±5.4% of the old pin, with no consistent direction. That is inside the
+  7.5% noise found in Task 1.
+- `regenerate.sh --verify` on Linux is left to CI's `goose.yaml`, which
+  runs on `ubuntu-latest` while the C was generated on macOS. With
+  `2c7d8d5` in the pin, it should now agree.
+- Step 3 is not done. The reply to aardappel/goose#125 is drafted and
+  waits for the user.
+- `hosted-runtime` now points at `b362b5a5`, locally. It is pushed when
+  Task 4 has commits on it.
 
 ### Task 4: Piece 1: hosted stock runtime
 
