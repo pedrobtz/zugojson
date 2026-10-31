@@ -1,0 +1,14 @@
+"case","task","seconds"
+"integers","minify",0.02315
+"integers","format",0.0248
+"integers","valid",0.0158000000000001
+"doubles","minify",0.0200999999999999
+"doubles","format",0.02135
+"doubles","valid",0.0121499999999999
+"strings","minify",0.01785
+"strings","format",0.0236999999999998
+"strings","valid",0.0119499999999999
+"records","minify",0.0159500000000001
+"records","format",0.0179000000000002
+"records","valid",0.00960000000000001
+"per_call","valid",0.515000000000001
